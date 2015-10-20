@@ -13,33 +13,41 @@ help_msg="""Script that interrogates ncbi online through the Bio.Entrez module a
 
 --- Usage:
 
-$ ncbi_assembly.py   -s species_or_lineage   [options]
+$ ncbi_assembly.py   -S species_or_lineage   [options]
 
 ### Options:
+-tax            provide a ncbi taxid instead; in this way you don't have to provide option -S. Note: only exact matches are found, the descendants are not reported (unlike with -S)
 -tab            tab separated output. The main messages then go to stderr, to allow redirection of the tables to an output file
--A              query the 'assembly' db directly instead of passing through 'genome'
--a              shows detailed  information for each assembly entry. As arguments:     
-     0           -> shows nothing
+
+-a              shows detailed information for each assembly entry. As arguments:     
+     0           -> shows nothing (quiet mode)
      1 [default] -> shows a few selected fields
      2           -> shows all the non-null fields in this object
      f1,f2,..    -> shows this list of comma-separated fields 
      +f1,f2,..   -> add these fields to the default fields
-  Note: for each assembly these attributed are also derived and made available as fields:
+ Note: for each assembly the attributes available are those found in the xml object returned by the search; additionally, these are also derived and made available as fields:
    props      all strings in PropertyList joined together
    date       NCBIReleaseDate made shorter
    ftp        ftp folder for this assembly, derived from the string in the Meta attribute
    ftp:dna    derived path of genome     file, ending in _genomic.fna.gz
    ftp:gff    derived path of annotation file, ending in _genomic.gff.gz
    ftp:pep    derived path of protein    file, ending in _protein.faa.gz
--c  [t1,t2..] test if certain files are found in the ncbi ftp site. Possible t: dna, gff, pep. With no argument, they are all tested  
+   ftp:md5    md5checksum file
 
-## only if 'genome' is queried  (-A not active):
--g              show detailed  information for each genome entry. Syntax just like -a
--z              display also the entries with AssemblyID=0; normally they are skipped
-
-## only if 'assembly' is queried  (-A active):
 -e              do not merge different versions of the same assembly (normally only the latest version is displayed)
--n              keep only the newest assembly per species
+-n              do not keep only the newest assembly per species
+
+-G              query the 'genome' db instead of 'assembly' directly; this gets fewer entries but better quality. -tax cannot be used
+  ## only if 'genome' is queried  (-G active):
+  -g              show detailed  information for each genome entry. Syntax just like -a (no additional fields available though)
+  -z              display also the entries with AssemblyID=0; normally they are skipped
+
+## check presence or download files
+-c  [t1,t2..]   test if certain files are found in the ncbi ftp site. Possible t values: dna, gff, pep. With no argument, they are all tested
+  ## if option -c  is active:
+  -s          show file size (compressed) instead of just presence
+-d  [t1,t2..]   download certain files; syntax just as -c. Md5sum is checked
+-f              download master folder
 
 ## technical
 -retmax       + max items requested at each connection to ncbi
@@ -53,12 +61,13 @@ $ ncbi_assembly.py   -s species_or_lineage   [options]
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/home/mmariotti/temp', 
-'s':'',   
+def_opt= { 'temp':'/home/mmariotti/temp', 
+'S':'',   'tax':False,
 'z':0, 'e':0, 'n':0,
 'tab':0, 
-'c':0,
-'A':0,   
+'c':0, 's':0, 'd':0, 
+'f':0,
+'G':0,   
 'g':1, 'a':1,
 'retmax':250, 'max_attempts':10, 'sleep_time':5, 
 'v':0, 
@@ -79,26 +88,33 @@ def main(args={}):
 #########################################################
 ############ loading options
   global opt
-  if not args: opt=command_line(def_opt, help_msg, 's', synonyms=command_line_synonyms )
+  if not args: opt=command_line(def_opt, help_msg, 'S', synonyms=command_line_synonyms )
   else:  opt=args
   set_MMlib_var('opt', opt)
-  #global temp_folder; temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)
+  global temp_folder; temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)
   #global split_folder;    split_folder=Folder(opt['temp']);               test_writeable_folder(split_folder); set_MMlib_var('split_folder', split_folder) 
   #checking input
-  #input_file=opt['i'];   check_file_presence(input_file, 'input_file')
 
   ### checking for illegal options
-  species=opt['s']
-  if not species:                 raise Exception, "ERROR you must specify a species or lineage name on the command line. See --help"
-  if opt['n'] and not opt['A']:   raise Exception, "ERROR option -n can only be coupled with option -A. See --help"
-  if opt['e'] and not opt['A']:   raise Exception, "ERROR option -e can only be coupled with option -A. See --help"
-  #if opt['g'] and not opt['g'] in [1,2]: raise Exception, "ERROR option -g has these possible values:  0  OR  1  OR  2"
+  species=opt['S']
+  if not species and not opt['tax']:  raise Exception, "ERROR you must specify a species or lineage name with option -S (or alternatively a taxid with -tax). See --help"
+  if species and opt['tax']:          raise Exception, "ERROR option -S and option -tax are mutually exclusive. See --help"
+  if opt['tax'] and opt['G']:         raise Exception, "ERROR option -tax cannot be used with -G. See --help"
+  if opt['n'] and opt['G']:           raise Exception, "ERROR option -n makes no sense with -G. See --help"
+  if opt['e'] and opt['G']:           raise Exception, "ERROR option -e makes no sense with -G. See --help"
+  if opt['s'] and not opt['c']:       raise Exception, "ERROR option -s makes sense only if -c is active. See --help"
+  if opt['d']: 
+    if not opt['f']:                  raise Exception, "ERROR to download (option -d) you must provide a local folder with option -f. See --help"
+    opt['c']=opt['d']
+    local_master_folder=Folder(opt['f']); test_writeable_folder(local_master_folder)
+
   #########
 
-  ## program start
-  message(' Searching for "{0}" in ncbi database "{1}" '.format(species, {True:'assembly',False:'genome'}[bool(opt['A'])]))
+  ####### program start
+  ## NOTE message is used to display any non-data message, e.g. how many results, how many filtered etc
+  message(' Searching for "{0}" in ncbi database "{1}" '.format(species, {False:'assembly',True:'genome'}[bool(opt['G'])]))
 
-  if not opt['A']:
+  if opt['G']:
     assembly_uid_list=[]  ## we have to populate this, either by querying genome db first, or by querying directly assembly db (-A)
     discarded_entries=0
     ## searching genomes for this lineage (or species)
@@ -136,11 +152,14 @@ def main(args={}):
         write(summary_line, 1)
     if discarded_entries:   message(' {0} entries were discarded, since missing an AssemblyID '.format( discarded_entries ) ) 
  
-  else:  ### querying assembly db directly   ( option -A )
+  elif not opt['tax']:  ### querying assembly db directly   
+    ######## DEFAULT BEHAVIOUR
     assembly_uid_list= esearch(db='assembly', term=species, field='Organism')  
-    if not assembly_uid_list:  message(' No assembly entries were found -- Exiting... '); return 
+  else:
+    taxid=str(opt['tax'])
+    assembly_uid_list= esearch(db='assembly', term=taxid, field='Taxonomy ID')  
 
-      
+  if not assembly_uid_list:  message(' No assembly entries were found -- Exiting... '); return       
   #############
   ######  now getting assembly entries
   assembly_entries = efetch (db='assembly', id=assembly_uid_list)
@@ -149,20 +168,22 @@ def main(args={}):
   ## deriving ftp folder and other useful attributes for each assembly
   for assembly_e in assembly_entries:
     assembly_e['ftp']='Failed to parse!'
-    assembly_e['ftp:dna']='None';  assembly_e['ftp:pep']='None';   assembly_e['ftp:gff']='None';
+    assembly_e['ftp:dna']='None';  assembly_e['ftp:pep']='None';   assembly_e['ftp:gff']='None'; assembly_e['ftp:md5']='None'; 
     try:  
       assembly_e['ftp']= assembly_e['Meta'].split('<FtpSites> ')[1].split('</FtpSites>')[0].split('<FtpPath type="GenBank">')[1].split('</FtpPath>')[0].strip()
       last_bit=assembly_e['ftp'].split('/')[-1]
       assembly_e['ftp:dna']= '{0}/{1}_genomic.fna.gz'.format(assembly_e['ftp'], last_bit)
       assembly_e['ftp:gff']= '{0}/{1}_genomic.gff.gz'.format(assembly_e['ftp'], last_bit)
       assembly_e['ftp:pep']= '{0}/{1}_protein.faa.gz'.format(assembly_e['ftp'], last_bit)
+      assembly_e['ftp:md5']= '{0}/md5checksums.txt'.format(assembly_e['ftp'])
+
     except: pass
     assembly_e['props']= join(assembly_e['PropertyList'], ' ')
     assembly_e['date']= assembly_e['NCBIReleaseDate'].split()[0]
 
   ####################
   ####### filtering the assembly entries
-  if opt['A'] and not opt['e']:
+  if not opt['G'] and not opt['e']:
     # removing duplicates of different versions, e.g. GCA_000188675.1  GCA_000188675.2 
     assembly_accession_dict={} # k: root_accession -> value:  [best_version_accession, best_version_index, [indexes_to_remove...]]
     for index, assembly_e in enumerate(assembly_entries):
@@ -178,7 +199,7 @@ def main(args={}):
     if indexes_to_remove: message(' Removed {0} assembly entries with a newer version available '.format( len(indexes_to_remove) ) )
     del assembly_accession_dict; del indexes_to_remove
 
-  if opt['A'] and opt['n']:
+  if not opt['G'] and not opt['n']:
     # removing duplicates of different species, keeping the most recent one
     species_dict={} # k: species_name -> value:  [most_recent_date, most_recent_index, [indexes_to_remove...]]
     for index, assembly_e in enumerate(assembly_entries):
@@ -215,10 +236,11 @@ def main(args={}):
     else:          fields_displayed.sort(key=lambda x:max_length_per_fields[x])
 
   if opt['c']:
-    if opt['c']==1: fields_to_test= ['ftp:dna', 'ftp:gff', 'ftp:pep']
+    if opt['c']==1: fields_to_test= ['ftp:dna', 'ftp:gff', 'ftp:pep', 'ftp:md5']
     else:           fields_to_test= map(lambda x:'ftp:'+x, opt['c'].split(','))
     for field in fields_to_test: 
       new_field_name= '?'+field.split(':')[1]
+      if opt['s']:  new_field_name = '#'+new_field_name[1:]
       max_length_per_fields[new_field_name]=4
       fields_displayed.append(new_field_name)
 
@@ -229,45 +251,26 @@ def main(args={}):
     write(header_line, 1, how='reverse')
 
 
-  ######## printing to screen
+  ######## printing to screen; and/or checking file presence
   for assembly_e in assembly_entries:
     if opt['c']:
       for field in fields_to_test:
         ffile= assembly_e[field]
         new_field_name='?'+field.split(':')[1]
-        assembly_e[new_field_name]=wget_spider(ffile)
+        if opt['s']:  
+          new_field_name = '#'+new_field_name[1:]
+          ssize=wget_spider(ffile, return_size=1)        
+          if ssize!='---': ssize=human_readable_size(ssize)
+          assembly_e[new_field_name]= ssize
+        else:      assembly_e[new_field_name]= wget_spider(ffile)
 
     if opt['a']:
       if opt['tab']:  summary_line=join([ str(assembly_e[field]) for field in fields_displayed ], '\t')
       else:           summary_line=join([ str(assembly_e[field]).ljust(max_length_per_fields[field]) for field in fields_displayed ], ' ')
       write(summary_line, 1)
-      continue
-      
-      fetch_assembly_r_list= Entrez.read( Entrez.efetch(db='assembly', id=assembly_uid, retmax=10,  rettype='docsum') )['DocumentSummarySet']['DocumentSummary']        
-      if len(fetch_assembly_r_list)!=1:  raise Exception, 'blobloblo' + str( fetch_assembly_r_list )
-      for fetch_assembly_r in fetch_assembly_r_list:
-          write( '{0} {1} {2} {3}'.format(fetch_assembly_r['AssemblyAccession'], fetch_assembly_r['PropertyList'], fetch_assembly_r['AssemblyStatus'], fetch_assembly_r['RS_BioProjects']) , 1)   #['BioprojectAccn']
-          meta_string=fetch_assembly_r['Meta']
-          ftp_string =meta_string.split('<FtpSites> ')[1].split('</FtpSites>')[0]
-          if  not '<FtpPath type="GenBank">' in ftp_string:              write('WARNING no genbank ftp! :' +ftp_string, 1 ); continue
-          ftp_genbank_folder_address = ftp_string.split('<FtpPath type="GenBank">')[1].split('</FtpPath>')[0]
-          last_bit= ftp_genbank_folder_address.split('/')[-1]
-          #write(last_bit, 1)
-          genome_file_name = last_bit+ '_genomic.fna.gz'
-          full_genome_path = ftp_genbank_folder_address+'/'+genome_file_name
-          wget_log_file = 'wget_last_log.txt'
-          wget_check_file_command = 'wget --spider {0} 2> {1} ; tail -n1 {1}'.format(full_genome_path, wget_log_file)
-          lines_on_log = bbash(wget_check_file_command).rstrip().split('\n')
-          
-          
-          if not last_word_on_log== 'exists.' :   
-            write(full_genome_path+ ' FAILED!', 1, how='magenta')
-          else:
-            write('-- genome found.', 1)
 
 
-
-          
+#### later move these functions somewhere else:          
 """ Wrapping default Entrez methods to connect to ncbi to allow network problems and batch requests"""
 def esearch(**keyargs):
   """ Generic wrap. You should use term=..  and db=..  and field=..  
@@ -325,22 +328,51 @@ def efetch(**keyargs):
     if len(fetched_obj_list) != len(batch_this_list): raise Exception, "efetch ERROR some ids could not be found! idlist: {0} \n{1}".format(join([b for b in batch_this_list], ' '), join([str(o) for o in fetched_obj_list], '\n'))
     list_out.extend(fetched_obj_list)
   return list_out
- 
-  
     
-def wget_spider(ffile):
+def wget_spider(ffile, return_size=False):
   """ given a file path in a ftp server, checks with wget if it exists """
   while True:
     if ffile=='None': return '   '
     wget_command='wget --spider {0} '.format(ffile); verbose(wget_command, 1); log = bash(wget_command)[1]
     splt=log.split()
-    if   splt and splt[-1]=='exists.' :                                 return 'web'
+    if   splt and splt[-1]=='exists.' :                                 
+      if not return_size:      return 'web'
+      else: 
+        for index, sstring in enumerate(splt):
+          if sstring=='SIZE': return int(splt[index+3])
+        raise Exception, 'couldnt parse size here! \n'+log
+
     elif len(splt)>3 and join(splt[-4:-1], ' ')=='No such file' :       return '---'    
     else:  
       raise Exception,  'wget_spider ERROR with file: "{0}" \nThis is the wget log:{1}'.format(ffile, log)
 
+def load_md5sum(md5file):
+  """ Returns a dictionary with the md5sum codes loaded from the remote ncbi ftp site. 
+  E.g.
+"""
+  
+
   ###############
 
+### copy-pasted from hurry.filesize:
+size_names = [    (1024 ** 5, 'P'),    (1024 ** 4, 'T'),     (1024 ** 3, 'G'),     (1024 ** 2, 'M'),     (1024 ** 1, 'K'),    (1024 ** 0, 'B')    ]
+def human_readable_size(bytes, system=size_names):
+    """Human-readable file size.
+    Using the traditional system, where a factor of 1024 is used::     >>> size(10)    '10B'
+    >>> size(20000)    '19K'       >>> size(100000)    '97K'           >>> size(200000)    '195K'        """
+    for factor, suffix in system:
+        if bytes >= factor:            break
+    amount = int(bytes/factor)
+    if isinstance(suffix, tuple):
+        singular, multiple = suffix
+        if amount == 1:    suffix = singular
+        else:              suffix = multiple
+    return str(amount) + suffix
+
+## temp, to improve
+def ftp_file_to_local_path(ftp_path, species_name, local_master_folder):
+  """ """
+  return local_master_folder.rstrip('/') +'/'+  replace(mask_characters(species_name), ' ', '_') + '/' + base_filename(ftp_path)
 
 
 #######################################################################################################################################
