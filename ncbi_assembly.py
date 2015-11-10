@@ -10,18 +10,12 @@ from time import strptime, sleep
 
 Entrez.email = "marco.mariotti@crg.es"  #for Entrez
 help_msg="""Script that interrogates ncbi online through the Bio.Entrez module and retrieves information about the assemblies for a certain organism or lineage. Normally the 'genome' db is queried, and the corresponding 'assembly' entries are fetched. If you wish, you can query the 'assembly' db instead with -A, which ends up in more results (potentially more than 1 per species).
-
---- Usage:
-
-$ ncbi_assembly.py   -S species_or_lineage   [options]
+## Usage:   $ ncbi_assembly.py   -S species_or_lineage   [options]
 
 ### Options:
--tax            provide a ncbi taxid instead; in this way you don't have to provide option -S. Note: only exact matches are found, the descendants are not reported (unlike with -S)
--tab            tab separated output. The main messages then go to stderr, to allow redirection of the tables to an output file
-
 -a              shows detailed information for each assembly entry. As arguments:     
      0           -> shows nothing (quiet mode)
-     1 [default] -> shows a few selected fields
+     1 [default] -> shows a few built-in selected fields
      2           -> shows all the non-null fields in this object
      f1,f2,..    -> shows this list of comma-separated fields 
      +f1,f2,..   -> add these fields to the default fields
@@ -29,35 +23,40 @@ $ ncbi_assembly.py   -S species_or_lineage   [options]
    props      all strings in PropertyList joined together
    date       NCBIReleaseDate made shorter
    ftp        ftp folder for this assembly, derived from the string in the Meta attribute
-   ftp:dna    derived path of genome     file, ending in _genomic.fna.gz
-   ftp:gff    derived path of annotation file, ending in _genomic.gff.gz
-   ftp:pep    derived path of protein    file, ending in _protein.faa.gz
-   ftp:md5    md5checksum file
+   ftp:XXX    derived path of a specific file. Other options can accept these "XXX" file classes. Here's the possible ones:
+ | dna   genome file   (*_genomic.fna)  | gff   annotation file    (*_genomic.gff)
+ | pep   proteome file (*_protein.faa)  | fea   feature table file (*_feature_table.txt)
+ | md5  md5checksum file                | 
 
--e              do not merge different versions of the same assembly (normally only the latest version is displayed)
--n              do not keep only the newest assembly per species
+-G        query the 'genome' db, instead of 'assembly' directly; this gets fewer entries but better quality
+ ## if -G is active:
+ -g       show detailed  information for each genome entry. Syntax just like -a (no additional fields available though)
+ -z       display also the entries with AssemblyID=0; normally they are skipped
+ ## if -G is NOT active:
+ -e       do not merge different versions of the same assembly (normally only the latest version is displayed)
+ -n       do not keep only the newest assembly per species
+ -tax     provide a ncbi taxid; in this way you don't have to provide option -S. Note: only exact matches are found, the descendants are not reported (unlike with -S)
 
--G              query the 'genome' db instead of 'assembly' directly; this gets fewer entries but better quality. -tax cannot be used
-  ## only if 'genome' is queried  (-G active):
-  -g              show detailed  information for each genome entry. Syntax just like -a (no additional fields available though)
-  -z              display also the entries with AssemblyID=0; normally they are skipped
-
-## check presence or download files
--c  [t1,t2..]   test if certain files are found in the ncbi ftp site. Possible t values: dna, gff, pep. With no argument, they are all tested
-  ## if option -c  is active:
-  -s          show file size (compressed) instead of just presence
--d  [t1,t2..]   download certain files; syntax just as -c. Md5sum is checked
--f              download master folder
+## check presence of web files and/or download them
+-c  [x1,x2..]   test if certain files are found in the ncbi ftp site. Possible x values: see XXX file classes above. With no argument, they are all tested
+ ## if option -c  is active:
+ -s             show file size (compressed) instead of just presence
+-d  [x1,x2..]   download certain files; syntax just as -c. Md5sum is checked (HAVE TO IMPLEMENT MD5SUM)
+ ## if option -d  is active:
+ -f             download master folder. The files are downloaded in a subfolder named after the species. By default they are also uncompressed and linked
+ -dl            do not link files with a standard name (e.g. genome.fa for dna, proteome.fa for pep); if used as "-dl 2", files are not even uncompressed with gunzip
+ -F             force download, even if files are found in the local master folder 
 
 ## technical
--retmax       + max items requested at each connection to ncbi
--max_attempts + max attempts querying a database
--sleep_time   + time between attempts in seconds
+-retmax         max items requested at each connection to ncbi
+-max_attempts   max attempts querying a database
+-sleep_time     time between attempts in seconds
 
 ## other options
--v              verbose output, for debugging
--print_opt      print currently active options
--h OR --help    print this help and exit"""
+-tab          tab separated output. The main messages then go to stderr, to allow redirection of the tables to an output file
+-v            verbose output, for debugging
+-print_opt    print currently active options
+-h OR --help  print this help and exit"""
 
 command_line_synonyms={}
 
@@ -66,12 +65,25 @@ def_opt= { 'temp':'/home/mmariotti/temp',
 'z':0, 'e':0, 'n':0,
 'tab':0, 
 'c':0, 's':0, 'd':0, 
-'f':0,
+'f':'', 'F':0, 'dl':0, 
 'G':0,   
 'g':1, 'a':1,
 'retmax':250, 'max_attempts':10, 'sleep_time':5, 
 'v':0, 
 }
+
+ftp_file_types=  ['dna', 'gff', 'pep', 'fea', 'md5']
+ftp_file_description={'dna':'genome.fa', 'gff':'annotation.gff', 'pep':'proteome.fa', 'fea':'feature_table.txt', 'md5':'md5sum.txt'}
+
+def populate_with_file_paths(assembly_e):
+  """ Given an assembly entry, it parses its fields and creates some fields with the path to files that can be downloaded"""
+  assembly_e['ftp']= assembly_e['Meta'].split('<FtpSites> ')[1].split('</FtpSites>')[0].split('<FtpPath type="GenBank">')[1].split('</FtpPath>')[0].strip()
+  last_bit=assembly_e['ftp'].split('/')[-1]
+  assembly_e['ftp:dna']= '{0}/{1}_genomic.fna.gz'.format(assembly_e['ftp'], last_bit)
+  assembly_e['ftp:gff']= '{0}/{1}_genomic.gff.gz'.format(assembly_e['ftp'], last_bit)
+  assembly_e['ftp:pep']= '{0}/{1}_protein.faa.gz'.format(assembly_e['ftp'], last_bit)
+  assembly_e['ftp:fea']= '{0}/{1}_feature_table.txt.gz'.format(assembly_e['ftp'], last_bit)
+  assembly_e['ftp:md5']= '{0}/md5checksums.txt'.format(assembly_e['ftp'])
 
 default_fields_displayed_genome  =['Id', 'Organism_Name', 'DefLine', 'Assembly_Accession', 'AssemblyID']
 default_fields_displayed_assembly=['ChainId', 'AssemblyAccession','RsUid', 'SpeciesName', 'AssemblyStatus', 'date'] #, 'props'] 
@@ -79,7 +91,6 @@ def message(msg):
   """Function to handle printing the main messages of the program, e.g. start, how many hits, how many removed and so on """
   if opt['tab']: printerr('#'+str(msg).center(90, '=')+'#', 1, how='green')
   else:          write(   '#'+str(msg).center(90, '=')+'#', 1, how='green')
-
 
 #########################################################
 ###### start main program function
@@ -104,10 +115,10 @@ def main(args={}):
   if opt['e'] and opt['G']:           raise Exception, "ERROR option -e makes no sense with -G. See --help"
   if opt['s'] and not opt['c']:       raise Exception, "ERROR option -s makes sense only if -c is active. See --help"
   if opt['d']: 
+    if opt['d']==1 or any([not c in ftp_file_types for c in opt['d'].split(',')]): raise Exception, "ERROR illegal argument for option -d ! See -help"
     if not opt['f']:                  raise Exception, "ERROR to download (option -d) you must provide a local folder with option -f. See --help"
-    opt['c']=opt['d']
     local_master_folder=Folder(opt['f']); test_writeable_folder(local_master_folder)
-
+  if opt['c'] and opt['c']!=1 and any(  [not c in ftp_file_types for c in opt['c'].split(',') ] ): raise Exception, "ERROR illegal argument for option -c ! See -help"
   #########
 
   ####### program start
@@ -168,15 +179,8 @@ def main(args={}):
   ## deriving ftp folder and other useful attributes for each assembly
   for assembly_e in assembly_entries:
     assembly_e['ftp']='Failed to parse!'
-    assembly_e['ftp:dna']='None';  assembly_e['ftp:pep']='None';   assembly_e['ftp:gff']='None'; assembly_e['ftp:md5']='None'; 
-    try:  
-      assembly_e['ftp']= assembly_e['Meta'].split('<FtpSites> ')[1].split('</FtpSites>')[0].split('<FtpPath type="GenBank">')[1].split('</FtpPath>')[0].strip()
-      last_bit=assembly_e['ftp'].split('/')[-1]
-      assembly_e['ftp:dna']= '{0}/{1}_genomic.fna.gz'.format(assembly_e['ftp'], last_bit)
-      assembly_e['ftp:gff']= '{0}/{1}_genomic.gff.gz'.format(assembly_e['ftp'], last_bit)
-      assembly_e['ftp:pep']= '{0}/{1}_protein.faa.gz'.format(assembly_e['ftp'], last_bit)
-      assembly_e['ftp:md5']= '{0}/md5checksums.txt'.format(assembly_e['ftp'])
-
+    for ft in ftp_file_types: assembly_e['ftp:'+ft]='None'
+    try:        populate_with_file_paths(assembly_e)
     except: pass
     assembly_e['props']= join(assembly_e['PropertyList'], ' ')
     assembly_e['date']= assembly_e['NCBIReleaseDate'].split()[0]
@@ -231,18 +235,22 @@ def main(args={}):
       else:                        fields_displayed=opt['a'].split(',')
     max_length_per_fields={}
     for field in fields_displayed:  max_length_per_fields[field]= max([len(str(e[field])) for e in assembly_entries] + [len(field)]) #getting max string length for pretty tabular like output
-  ### preparing to check files
     if opt['tab']: fields_displayed.sort()
     else:          fields_displayed.sort(key=lambda x:max_length_per_fields[x])
 
-  if opt['c']:
-    if opt['c']==1: fields_to_test= ['ftp:dna', 'ftp:gff', 'ftp:pep', 'ftp:md5']
-    else:           fields_to_test= map(lambda x:'ftp:'+x, opt['c'].split(','))
+  ### preparing to check files
+  if opt['c'] or opt['d']:
+    if   opt['c']==1: fields_to_test=  map(lambda x:'ftp:'+x, ftp_file_types)
+    elif opt['c']:    fields_to_test=  map(lambda x:'ftp:'+x, opt['c'].split(','))
+    else:             fields_to_test=[]  #for -d switch below to work
+    if opt['d']:      fields_to_test.extend( [ftt for ftt in map(lambda x:'ftp:'+x, opt['d'].split(',')) if not ftt in fields_to_test] ) 
     for field in fields_to_test: 
       new_field_name= '?'+field.split(':')[1]
       if opt['s']:  new_field_name = '#'+new_field_name[1:]
       max_length_per_fields[new_field_name]=4
       fields_displayed.append(new_field_name)
+  ### preparing to download files
+
 
   ####### writing header line
   if opt['a']:
@@ -250,10 +258,9 @@ def main(args={}):
     else:          header_line = join([field.ljust(max_length_per_fields[field]) for field in fields_displayed ], ' ')
     write(header_line, 1, how='reverse')
 
-
-  ######## printing to screen; and/or checking file presence
   for assembly_e in assembly_entries:
-    if opt['c']:
+    if opt['c'] or opt['d']:
+      ### checking file presence, setting attribute of assembly_e
       for field in fields_to_test:
         ffile= assembly_e[field]
         new_field_name='?'+field.split(':')[1]
@@ -263,11 +270,44 @@ def main(args={}):
           if ssize!='---': ssize=human_readable_size(ssize)
           assembly_e[new_field_name]= ssize
         else:      assembly_e[new_field_name]= wget_spider(ffile)
-
+        
     if opt['a']:
+      ### printing to stdout detailed information for each entry
       if opt['tab']:  summary_line=join([ str(assembly_e[field]) for field in fields_displayed ], '\t')
       else:           summary_line=join([ str(assembly_e[field]).ljust(max_length_per_fields[field]) for field in fields_displayed ], ' ')
       write(summary_line, 1)
+    
+    if opt['d']: 
+      ###### download files!   ################ TODO: add md5sum control
+      species_name=assembly_e['SpeciesName']
+      types_to_download=  opt['d'].split(',')
+      for file_type in types_to_download:
+        ftp_path=       assembly_e['ftp:'+file_type]
+        check_ftp_path= assembly_e['?'+file_type]
+
+        if ftp_path=='None':            continue
+        if check_ftp_path=='---':       continue
+        file_destination = ftp_file_to_local_path(ftp_path, species_name, local_master_folder);    file_base_name_destination= base_filename(file_destination)
+        species_folder= Folder( abspath( directory_name(file_destination) ) )
+        gunzipped_file= file_destination.split('.gz')[0];       file_base_name_gunzipped= base_filename(gunzipped_file)
+        file_base_name_link= ftp_file_description[file_type];   file_link= species_folder + file_base_name_link
+        lets_unzip= not opt['dl']==2;  lets_link= not opt['dl'];  lets_download=True
+
+        if is_file(file_link):     
+          if lets_link  and opt['F']: message('REMOVE existing link to replace it: "{0}" '.format(file_link)); bbash('rm '+file_link)
+          else:                       lets_download=False; lets_unzip=False; lets_link=False
+        if is_file(gunzipped_file):     
+          if lets_unzip and opt['F']: message('REMOVE existing file to replace it: "{0}" '.format(gunzipped_file)); bbash('rm '+gunzipped_file)
+          else:                       lets_download=False; lets_unzip=False
+        if is_file (file_destination):
+          if opt['F']:  message('REMOVE existing file.gz to replace it: "{0}" '.format(file_destination)); bbash('rm '+file_destination)          
+          else:         lets_download=False
+
+        actions= [ {True:'DOWNLOAD', False:''}[lets_download], {True:'GUNZIP', False:''}[lets_unzip],  {True:'LINK', False:''}[lets_link] ] 
+        if any(actions):  message('{0} {1} to "{4}" '.format(join(actions, ' & ') , file_base_name_link.split('.')[0], file_base_name_destination, species_name, species_folder))  #removed   "{2}"   and also   for species: "{3}"
+        if lets_download: bbash('cd {0} && wget   {1}'.format(species_folder, ftp_path))  ## now DOWNLOADING with wget
+        if lets_unzip:    bbash('cd {0} && gunzip {1}'.format(species_folder, file_base_name_destination ))  ## now GUNZIPPING with gunzip
+        if lets_link:     bbash('cd {0} && ln -s "{1}" {2}'.format(species_folder, file_base_name_gunzipped, file_base_name_link))  ## now GUNZIPPING with gunzip
 
 
 #### later move these functions somewhere else:          
