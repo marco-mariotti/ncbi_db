@@ -72,8 +72,11 @@ def_opt= { 'temp':'/home/mmariotti/temp',
 'v':0, 
 }
 
-ftp_file_types=  ['dna', 'gff', 'pep', 'fea', 'md5']
-ftp_file_description={'dna':'genome.fa', 'gff':'annotation.gff', 'pep':'proteome.fa', 'fea':'feature_table.txt', 'md5':'md5sum.txt'}
+ftp_file_description={'dna':'genome.fa',  'pep':'proteome.fa', 
+'gff':'annotation.gff', 'fea':'feature_table.txt', 'gbf':'genbank.gbff',
+'md5':'md5sum.txt'}
+ftp_file_types=ftp_file_description.keys()
+
 
 def populate_with_file_paths(assembly_e):
   """ Given an assembly entry, it parses its fields and creates some fields with the path to files that can be downloaded"""
@@ -81,12 +84,13 @@ def populate_with_file_paths(assembly_e):
   last_bit=assembly_e['ftp'].split('/')[-1]
   assembly_e['ftp:dna']= '{0}/{1}_genomic.fna.gz'.format(assembly_e['ftp'], last_bit)
   assembly_e['ftp:gff']= '{0}/{1}_genomic.gff.gz'.format(assembly_e['ftp'], last_bit)
+  assembly_e['ftp:gbf']= '{0}/{1}_genomic.gbff.gz'.format(assembly_e['ftp'], last_bit)
   assembly_e['ftp:pep']= '{0}/{1}_protein.faa.gz'.format(assembly_e['ftp'], last_bit)
   assembly_e['ftp:fea']= '{0}/{1}_feature_table.txt.gz'.format(assembly_e['ftp'], last_bit)
   assembly_e['ftp:md5']= '{0}/md5checksums.txt'.format(assembly_e['ftp'])
 
 default_fields_displayed_genome  =['Id', 'Organism_Name', 'DefLine', 'Assembly_Accession', 'AssemblyID']
-default_fields_displayed_assembly=['ChainId', 'AssemblyAccession','RsUid', 'SpeciesName', 'AssemblyStatus', 'date'] #, 'props'] 
+default_fields_displayed_assembly=['ChainId', 'AssemblyAccession','RsUid', 'SpeciesName', 'AssemblyStatus', 'date', 'AssemblyName'] #, 'props'] 
 def message(msg):
   """Function to handle printing the main messages of the program, e.g. start, how many hits, how many removed and so on """
   if opt['tab']: printerr('#'+str(msg).center(90, '=')+'#', 1, how='green')
