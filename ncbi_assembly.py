@@ -26,7 +26,7 @@ help_msg="""Script that interrogates ncbi online through the Bio.Entrez module a
    ftp:XXX    derived path of a specific file. Other options can accept these "XXX" file classes. Here's the possible ones:
  | dna   genome file   (*_genomic.fna)  | gff   annotation file    (*_genomic.gff)
  | pep   proteome file (*_protein.faa)  | fea   feature table file (*_feature_table.txt)
- | md5  md5checksum file                | 
+ | gbf   genbank format annoation file  | md5  md5checksum file                 
 
 -G        query the 'genome' db, instead of 'assembly' directly; this gets fewer entries but better quality
  ## if -G is active:
@@ -298,6 +298,7 @@ def main(args={}):
         lets_unzip= not opt['dl']==2;  lets_link= not opt['dl'];  lets_download=True
 
         if is_file(file_link):     
+          #printerr(file_link, 1)
           if lets_link  and opt['F']: message('REMOVE existing link to replace it: "{0}" '.format(file_link)); bbash('rm '+file_link)
           else:                       lets_download=False; lets_unzip=False; lets_link=False
         if is_file(gunzipped_file):     
@@ -307,6 +308,8 @@ def main(args={}):
           if opt['F']:  message('REMOVE existing file.gz to replace it: "{0}" '.format(file_destination)); bbash('rm '+file_destination)          
           else:         lets_download=False
 
+
+        #printerr( str( (lets_download, lets_link, lets_unzip)), 1)
         actions= [ {True:'DOWNLOAD', False:''}[lets_download], {True:'GUNZIP', False:''}[lets_unzip],  {True:'LINK', False:''}[lets_link] ] 
         if any(actions):  message('{0} {1} to "{4}" '.format(join(actions, ' & ') , file_base_name_link.split('.')[0], file_base_name_destination, species_name, species_folder))  #removed   "{2}"   and also   for species: "{3}"
         if lets_download: bbash('cd {0} && wget   {1}'.format(species_folder, ftp_path))  ## now DOWNLOADING with wget
@@ -328,7 +331,7 @@ def esearch(**keyargs):
     while n_attempt < max_attempts:
       try:                
         verbose('ESEARCH.n{3} retstart:{0} retmax:{1} {2}'.format(retstart, retmax, join([k+':'+str(keyargs[k]) for k in keyargs], ' '), n_attempt+1), 1)
-        searched_g = Entrez.read( Entrez.esearch(retstart=retstart, retmax=retmax,  **keyargs) ) 
+        searched_g = Entrez.read( Entrez.esearch(retstart=retstart, retmax=retmax,  **keyargs), validate=False ) 
         break
       except URLError:    sleep(sleep_time); n_attempt+=1;  service('esearch FAILED attempt n{0} trying again in {1}s'.format(n_attempt, sleep_time) )
     if n_attempt == max_attempts: write('esearch ERROR network problem??', 1); raise
@@ -361,7 +364,7 @@ def efetch(**keyargs):
     while n_attempt < max_attempts:
       try:              
         verbose('EFETCH.n{2} {1} idlist: {0} '.format(join([b for b in batch_this_list], ' '), join([k+':'+str(keyargs[k]) for k in keyargs if k!='id'], ' '), n_attempt+1 ), 1)
-        parsed  =Entrez.read( Entrez.efetch(id=batch_this_list, rettype='docsum',  **this_keyargs))
+        parsed  =Entrez.read( Entrez.efetch(id=batch_this_list, rettype='docsum', validate=False, **this_keyargs), validate=False )
         break
       except URLError:    sleep(sleep_time); n_attempt+=1; service('efetch FAILED attempt n{0} trying again in {1}s'.format(n_attempt, sleep_time) )
     if n_attempt == max_attempts: write('efetch ERROR network problem??', 1); raise
