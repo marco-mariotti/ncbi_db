@@ -13,11 +13,10 @@ $ ncbi_pubmed.py   [search]   [output]
 -S   default search; this is like standard pubmed search, you can also include field names e.g. "Nature [JOUR]"
 
 ###  Output options:
-## Reference style:
--s  [format]   reference style is in the specified format. 
- Available styles: pnas, info
-## Output format options:
--f  [format]  available: html, txt
+#    Reference style:
+-s  [style]   reference style is in the specified format. Available: pnas, info
+#    Format options: 
+-f  [format]  Use html and open with a browser to have formatted text. Available: html, txt
 
 ### other options:
 -print_opt      print currently active options
