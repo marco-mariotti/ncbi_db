@@ -1,12 +1,5 @@
 #! /usr/bin/python -u
-from string import *
-import sys
-from commands import *
-sys.path.append('/home/mmariotti/scripts')
-from MMlib import *
-from Bio import Entrez
-Entrez.email = 'marco.mariotti@crg.es'
-
+from ncbi_lib import *
 help_msg=""" Displays information about ncbi db that can be queried through the Entrez module. Usage:
 
 $  ncbi_db_info.py    db_name
