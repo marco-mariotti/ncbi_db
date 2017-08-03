@@ -84,6 +84,7 @@ def main(args={}):
   lSeqData = oGBParsy.getRawData()
 
   failed_parse_titles=0   
+  lack_translation_warnings=0
   for dSeqData in lSeqData: # dSeqData has a parsed data of a GBF sequence data
       # start of user process
       if opt['x']:
@@ -152,8 +153,15 @@ def main(args={}):
                 if get_protein: 
                   sequence=getQualValue('translation',  dFeature)
                   if not sequence: 
-                    printerr('WARNING lacking translation field for entry: {t} ; obtaining from raw sequence ...'.format(t=title), 1)
-                    sequence=transl( getSequence(dSeqData["sequence"], dFeature)  ).rstrip('*').rstrip('X')
+                    lack_translation_warnings+=1
+                    if lack_translation_warnings<10:
+                      printerr('WARNING lacking translation field for entry: {t} ; obtaining from raw sequence'.format(t=title), 1)
+                    if lack_translation_warnings==10:
+                      printerr('LAST WARNING: lacking translation field for entry: {t}; obtaining from raw sequence. Next warnings of this type will not be printed'.format(t=title), 1)                      
+                    codon_start=getQualValue('codon_start',  dFeature)
+                    cds=getSequence(dSeqData["sequence"], dFeature)
+                    if codon_start and codon_start!='1':  cds=cds[int(codon_start)-1:]
+                    sequence=transl( cds ).rstrip('*').rstrip('X')
                 else:  sequence=getSequence(dSeqData["sequence"], dFeature) 
                 write('>{title}{desc}\n{seq}'.format(title=title, desc=description.rstrip(), seq=sequence), 1)
 
