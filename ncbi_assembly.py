@@ -27,7 +27,10 @@ help_msg="""Script that interrogates ncbi online through the Bio.Entrez module a
  ## if -G is NOT active:
  -e       do not merge different versions of the same assembly (normally only the latest version is displayed)
  -n       do not keep only the newest assembly per species
+
+### Alternative query methods:
  -tax     provide a ncbi taxid; in this way you don't have to provide option -S. Note: only exact matches are found, the descendants are not reported (unlike with -S)
+ -aa      provide assembly accessions (style: GCA_001940725.1); optionally multiple, comma-separated. Overrides -S and -tax
 
 ## check presence of web files and/or download them
 -c  [x1,x2..]   test if certain files are found in the ncbi ftp site. Possible x values: see XXX file classes above. With no argument, they are all tested
@@ -53,7 +56,7 @@ help_msg="""Script that interrogates ncbi online through the Bio.Entrez module a
 command_line_synonyms={}
 
 def_opt= { 'temp':'/home/mmariotti/temp', 
-'S':'',   'tax':False,
+'S':'',   'tax':False, 'aa':0,
 'z':0, 'e':0, 'n':0,
 'tab':0, 
 'c':0, 's':0, 'd':0, 
@@ -103,9 +106,15 @@ def main(args={}):
 
   ### checking for illegal options
   species=opt['S']
-  if not species and not opt['tax']:  raise Exception, "ERROR you must specify a species or lineage name with option -S (or alternatively a taxid with -tax). See --help"
-  if species and opt['tax']:          raise Exception, "ERROR option -S and option -tax are mutually exclusive. See --help"
-  if opt['tax'] and opt['G']:         raise Exception, "ERROR option -tax cannot be used with -G. See --help"
+  n_query_options=sum(map( lambda x:int(bool(opt[x])),   ['tax','S','aa']))
+  if not n_query_options:  raise Exception, """ERROR you must specify one input query among:
+ -S    species or lineage name 
+ -tax  NCBI taxonomy taxid
+ -aa   assembly accession
+See --help"""
+  if  n_query_options>1:
+    raise Exception, "ERROR options -S, -tax and -aa are mutually exclusive. See --help"
+  if (opt['tax'] or opt['aa']) and opt['G']:         raise Exception, "ERROR option -G cannot be used with -aa or -tax. See --help"
   if opt['n'] and opt['G']:           raise Exception, "ERROR option -n makes no sense with -G. See --help"
   if opt['e'] and opt['G']:           raise Exception, "ERROR option -e makes no sense with -G. See --help"
   if opt['s'] and not opt['c']:       raise Exception, "ERROR option -s makes sense only if -c is active. See --help"
@@ -158,13 +167,19 @@ def main(args={}):
         write(summary_line, 1)
     if discarded_entries:   message(' {0} entries were discarded, since missing an AssemblyID '.format( discarded_entries ) ) 
  
-  elif not opt['tax']:  ### querying assembly db directly   
-    ######## DEFAULT BEHAVIOUR
-    assembly_uid_list= esearch(db='assembly', term=species, field='Organism')  
-  else:
+  elif opt['aa']:
+    assembly_uid_list=[]
+    for assembly_accession in opt['aa'].split(','):
+      assembly_uid_list+=esearch(db='assembly', term=assembly_accession, field='AssemblyAccession')      
+  elif opt['tax']:
     taxid=str(opt['tax'])
     assembly_uid_list= esearch(db='assembly', term=taxid, field='Taxonomy ID')  
+  else:  ### querying assembly db directly   
+    ######## DEFAULT BEHAVIOUR, with -S
+    assembly_uid_list= esearch(db='assembly', term=species, field='Organism')  
 
+
+  #write(assembly_uid_list, 1, how='yellow')
   if not assembly_uid_list:  message(' No assembly entries were found -- Exiting... '); return       
   #############
   ######  now getting assembly entries
@@ -178,7 +193,8 @@ def main(args={}):
     try:        populate_with_file_paths(assembly_e)
     except: pass
     assembly_e['props']= join(assembly_e['PropertyList'], ' ')
-    assembly_e['date']= assembly_e['NCBIReleaseDate'].split()[0]
+    # print '\n'.join(sorted(assembly_e.keys()))
+    assembly_e['date']= assembly_e['SeqReleaseDate'].split()[0] #was NCBIReleaseDate
 
   ####################
   ####### filtering the assembly entries
