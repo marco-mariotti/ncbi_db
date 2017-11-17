@@ -16,6 +16,8 @@ set_MMlib_var('opt', options( {'retmax':250, 'max_attempts':10, 'sleep_time':5, 
 """ Wrapping default Entrez methods to connect to ncbi to allow network problems and batch requests"""
 def esearch(**keyargs):
   """ Generic wrap. You should use term=..  and db=..  and field=..  
+  Note: these will be used:  opt['max_attempts']   opt['sleep_time']; opt['retmax']
+   where opt is get_MMlib_var('opt')   [you can set it with  set_MMlib_var('opt', opt) ]
   Returns a list of uids (strings) """
   opt=get_MMlib_var('opt');  max_attempts=opt['max_attempts']; sleep_time=opt['sleep_time']; retmax=opt['retmax']
   uid_list=[]; retstart=0
