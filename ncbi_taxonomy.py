@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 from string import *
 import sys
-from commands import *
+from subprocess import *
 sys.path.insert(0, "/users/rg/mmariotti/libraries/")
 sys.path.append('/users/rg/mmariotti/scripts')
 from MMlib import *
@@ -47,7 +47,7 @@ If used as a function (imported in another python program), the main() function 
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/home/mmariotti/temp', 
+def_opt= { #'temp':'/users-d3/mmariotti/temp', 
 'i':0, 'I':'', 'L':0,
 'S':"", 'c':0, 'm':0, 'r':0, 's':0, 'D':0, 'n':0,
 'v':0, 'Q':0,
@@ -59,8 +59,8 @@ def_opt= { #'temp':'/home/mmariotti/temp',
 def lineage_string_to_abstract(lineage):
   """ lineage is a string which is usually returned by this program. This function condensate it keeping the most interesting classes. """
   splt=lineage.split('; ')
-  if "Bacteria; " in lineage  :    return 'B; '+join(splt[2:min(5, len(splt))], '; ')
-  elif 'Archaea; ' in lineage :    return 'A; '+join(splt[2:min(5, len(splt))], '; ')
+  if "Bacteria; " in lineage  :    return 'B; '+'; '.join(splt[2:min(5, len(splt))])
+  elif 'Archaea; ' in lineage :    return 'A; '+'; '.join(splt[2:min(5, len(splt))])
   elif 'Eukaryota; ' in lineage:   
     out='E; '
     if 'Metazoa; ' in lineage:
@@ -102,16 +102,16 @@ def lineage_string_to_abstract(lineage):
         elif 'Placozoa; ' in lineage:      out+='Placozoa; '
         elif 'Platyhelminthes; ' in lineage: out+='Platyhelminthes; '
 
-    else:      out+= join(splt[2:min(4, len(splt))], '; ')+'; '
+    else:      out+= '; '.join(splt[2:min(4, len(splt))])+'; '
     return out[:-2]
-  else:      return join(splt[0:min(4, len(splt))], '; ')
+  else:      return '; '.join(splt[0:min(4, len(splt))])
             
   
 #########################################################
 ###### start main program function
 
 def verbose(msg):
-  if opt['v']:      print msg
+  if opt['v']:      print(msg)
 
 def id_is_included_in_list(main_id, id_list):
   for a_id in id_list:
@@ -128,7 +128,7 @@ def main(args={}):
   else:  
     opt=args
     for k in def_opt: 
-      if not opt.has_key(k): opt[k]=def_opt[k]
+      if k not in opt: opt[k]=def_opt[k]
     
   #determining input ids
   id_list=[]
@@ -136,7 +136,7 @@ def main(args={}):
     check_file_presence(opt['i'], 'input_file_with_ids')
     for line in open(opt['i']):       id_list.append(line[:-1])
   elif opt['I']:    id_list=str(opt['I']).split(',')
-  elif not opt['S']:  raise Exception, "ERROR must provide ids either with option -i FILE or option -I id1,id2,...,idN, or a search string with opt -S.  Run with option -h for help"
+  elif not opt['S']:  raise Exception("ERROR must provide ids either with option -i FILE or option -I id1,id2,...,idN, or a search string with opt -S.  Run with option -h for help")
   
   ########## search string
   if opt['S']:
@@ -158,19 +158,19 @@ def main(args={}):
     
     if opt['D'] and not id_list:
       # approximate match      
-      search_string= opt['S'];       search_string= join(search_string.split()[:len(search_string.split())-1], ' ')
+      search_string= opt['S'];       search_string= ' '.join(search_string.split()[:len(search_string.split())-1])
       while not id_list and search_string:
         search_ncbi_entries_opt={'silent':1, 's':search_string, 'm':'T', 'a':opt['a']}
         id_list= search_ncbi_entries.main(search_ncbi_entries_opt)
-        if not id_list: search_string= join(search_string.split()[:len(search_string.split())-1], ' ')        
+        if not id_list: search_string= ' '.join(search_string.split()[:len(search_string.split())-1])        
 
       if not search_string:
         # approximate match  replacing _ with " "
-        search_string= replace_chars(opt['S'], '_', ' ');       search_string= join(search_string.split()[:len(search_string.split())-1], ' ')
+        search_string= replace_chars(opt['S'], '_', ' ');       search_string= ' '.join(search_string.split()[:len(search_string.split())-1])
         while not id_list and search_string:
           search_ncbi_entries_opt={'silent':1, 's':search_string, 'm':'T', 'a':opt['a']}
           id_list= search_ncbi_entries.main(search_ncbi_entries_opt)
-          if not id_list: search_string= join(search_string.split()[:len(search_string.split())-1], ' ')        
+          if not id_list: search_string= ' '.join(search_string.split()[:len(search_string.split())-1])        
 
       if id_list and search_string: printerr('WARNING returning the approximate match reducing: "'+opt['S']+'"  to:  "'+search_string+'"', 1)
       
@@ -196,7 +196,7 @@ def main(args={}):
       attempts=0
       while not fetch_successful and (  attempts < opt['a'] or opt['a']==0):
         try:
-          fetch_handle=Entrez.efetch(db='taxonomy', id=join(batch_id_list, ','), retmode='xml')    ## connecting to ncbi via internet
+          fetch_handle=Entrez.efetch(db='taxonomy', id=','.join(batch_id_list), retmode='xml')    ## connecting to ncbi via internet
           parsed_results=[r for r in Entrez.parse(fetch_handle)]
           fetch_successful=True
         except KeyboardInterrupt:          raise
@@ -240,10 +240,10 @@ def main(args={}):
           if opt['r']:           out+= ' # Rank: '+str(record['Rank'])
           if opt['c']:           out+= ' # GeneticCode: '+str(record['GeneticCode']['GCId'])+'='+record['GeneticCode']['GCName']
           if opt['m']:           out+= ' # MitoGeneticCode: '+str(record['MitoGeneticCode']['MGCId'])+'='+record['MitoGeneticCode']['MGCName']
-          if opt['n']:           out+= ' # MaskedName: '+ replace( mask_characters(record['ScientificName']), ' ', '_' )
+          if opt['n']:           out+= ' # MaskedName: '+ mask_characters(record['ScientificName']).replace( ' ', '_' )
 
         
-          if not opt['silent']: print out
+          if not opt['silent']: print(out)
           output_hash [batch_id_list[batch_id_list_index]]=out
 
         #if batch_id_list_index == len(batch_id_list): return output_hash

@@ -1,4 +1,4 @@
-#! /usr/bin/python -u
+#! /usr/bin/env python3
 from ncbi_lib import *
 help_msg="""Utility to search/fetch any NCBI db and print info about results.
 
@@ -22,7 +22,7 @@ For a list of keywords for a certain dbname, run: ncbi_db_info.py dbname
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/home/mmariotti/temp', 
+def_opt= { #'temp':'/users-d3/mmariotti/temp', 
 'i':0, 'I':0, 'd':0, 'o':0,
 'v':0, 'x':0, 't':0, 
 'retmax':250, 'max_attempts':10, 'sleep_time':5, 
@@ -70,17 +70,17 @@ def main(args={}):
   field_template='{:<12}'  if not opt['t'] else '{}'
   separator=':'            if not opt['t'] else '\t'
 
-  possible_fields=None if not opt['o'] else    set( map(lower, opt['o'].split(','))  ) 
+  possible_fields=None if not opt['o'] else    set( map(str.lower, opt['o'].split(','))  ) 
   if opt['r']:
     all_fields=set()
-    for e in entries: all_fields.update(e.keys())
+    for e in entries: all_fields.update(list(e.keys()))
     all_fields=sorted(all_fields, cmp=lambda x,y:-1 if x=='Id' else   (+1 if y=='Id' else cmp(x,y))) 
 
   if opt['r']: write('\t'.join([f for f in all_fields if possible_fields is None or f.lower() in possible_fields]), 1)  #header
 
   for ei, e in enumerate(entries):
     if opt['r']:   target_fields=all_fields
-    else:          target_fields=sorted(e.keys(), cmp=lambda x,y:-1 if x=='Id' else   (+1 if y=='Id' else cmp(x,y))) 
+    else:          target_fields=sorted(list(e.keys()), cmp=lambda x,y:-1 if x=='Id' else   (+1 if y=='Id' else cmp(x,y))) 
     for i, k in enumerate(target_fields):      
       if possible_fields is None or k.lower() in possible_fields:
         if opt['r'] and not k in e: 

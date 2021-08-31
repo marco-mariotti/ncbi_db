@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 from string import *
 import sys
-from commands import *
+from subprocess import *
 sys.path.insert(0, "/users/rg/mmariotti/libraries/")
 sys.path.append('/users/rg/mmariotti/scripts')
 from MMlib import *
@@ -32,7 +32,7 @@ For tools more specialized than this, see fetch_ncbi_sequences.py and ncbi_taxon
 
 command_line_synonyms={}
 
-def_opt= {'temp':'/home/mmariotti/temp', 
+def_opt= {'temp':'/users-d3/mmariotti/temp', 
 's':'',
 'm':'P',
 'v':0, 'Q':0, 'a':100,
@@ -53,17 +53,17 @@ def main(args={}):
   else:  
     opt=args
     for k in def_opt: 
-      if not opt.has_key(k): opt[k]=def_opt[k]
+      if k not in opt: opt[k]=def_opt[k]
   #global temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)
   #global split_folder;    split_folder=Folder(opt['temp']);               test_writeable_folder(split_folder); set_MMlib_var('split_folder', split_folder) 
   output_list=[]
   
   #mode
-  try:    db=mode_synonyms[upper(opt['m'])] 
-  except: raise Exception, "ERROR mode not recognized: "+opt['m']
+  try:    db=mode_synonyms[opt['m'].upper()] 
+  except: raise Exception("ERROR mode not recognized: "+opt['m'])
   #determining input ids
 
-  if not opt['s']: raise Exception, "ERROR must define a double-quoted search string with opt -s or as first argument. Run with -h for help"
+  if not opt['s']: raise Exception("ERROR must define a double-quoted search string with opt -s or as first argument. Run with -h for help")
 
   max_items=opt['M']  
   fetch_successful=False
@@ -89,10 +89,10 @@ def main(args={}):
   if len(id_list)==max_items and not opt['c']:   printerr('WARNING The maximum limit for the number of returned ids was hit ('+str(max_items)+')! you may want to rerun with a higher limit (option -M)', 1)
 
   if opt['c']:
-    if not opt['silent']:    print count
+    if not opt['silent']:    print(count)
   else:
     for id_t in id_list:
-      if not opt['silent']: print id_t
+      if not opt['silent']: print(id_t)
       output_list.append(id_t)
   return output_list
   

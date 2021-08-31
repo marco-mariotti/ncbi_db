@@ -1,4 +1,4 @@
-#! /usr/bin/python -u
+#! /usr/bin/env python3
 from ncbi_lib import *
 help_msg=""" Displays information about ncbi db that can be queried through the Entrez module. Usage:
 
@@ -11,7 +11,7 @@ To get a list of possible db_name, run with no options
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/home/mmariotti/temp', 
+def_opt= { #'temp':'/users-d3/mmariotti/temp', 
 'i':0, }
 
 
@@ -34,7 +34,7 @@ def main(args={}):
     ## no input specified, let's see the list of dbs
     write('These are the list of possible DBs available at ncbi:', 1)
     write('', 1)
-    write(   join (  sorted(Entrez.read( Entrez.einfo() )['DbList']), ' '), 1  )
+    write(   ' '.join (  sorted(Entrez.read( Entrez.einfo() )['DbList'])), 1  )
     write('', 1)
     write('Provide one as argument to display its available fields', 1)
 

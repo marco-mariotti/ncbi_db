@@ -1,4 +1,4 @@
-#! /usr/bin/python -u
+#! /usr/bin/env python3
 from ncbi_lib import *
 help_msg="""Utility to search pubmed entries online and get formatted reference-style entries 
 Usage:
@@ -31,7 +31,7 @@ $ ncbi_pubmed.py   [search]   [output]
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/home/mmariotti/temp', 
+def_opt= { #'temp':'/users-d3/mmariotti/temp', 
 'P':0, 'p':0, 'kp':0,
 's':'info',
 'f':'txt',
@@ -59,11 +59,11 @@ def main(args={}):
 
   available_output_formats={'html':1, 'txt':1}
   output_format=opt['f']
-  if not output_format in available_output_formats: raise Exception, 'ERROR invalid argument to option -f !  See -h'
+  if not output_format in available_output_formats: raise Exception('ERROR invalid argument to option -f !  See -h')
 
   available_ref_style={'pnas':1, 'info':1, 'elife':1}
   ref_style=opt['s']
-  if not ref_style in available_ref_style: raise Exception, 'ERROR invalid argument to option -s !  See -h'
+  if not ref_style in available_ref_style: raise Exception('ERROR invalid argument to option -s !  See -h')
 
   style2max_authors={'pnas':5, 'elife':30, 'info':0} #not used for info
   max_authors= opt['ma'] if opt['ma'] else style2max_authors[ref_style]
@@ -78,7 +78,7 @@ def main(args={}):
       splt=line.strip().split('\t')
       citation_key, pubmed_id= splt
       pubmed_id2citation_key[pubmed_id]=citation_key
-    pubmed_ids=pubmed_id2citation_key.keys()
+    pubmed_ids=list(pubmed_id2citation_key.keys())
     #print pubmed_id2citation_key
   else: 
     term=''
@@ -91,7 +91,7 @@ def main(args={}):
     if opt['S']: term+= ''+ opt['S'] +' ' #[ALL] '
     #write(term, 1, how='red')
     if not term:
-      raise Exception, "ERROR no article search defined. See -h"
+      raise Exception("ERROR no article search defined. See -h")
     
     if opt['v']:  printerr( 'search term: ' +term, 1)
     pubmed_ids=esearch(db='pubmed', term=term)
@@ -115,7 +115,7 @@ def main(args={}):
         splt=author.split()
         surname=''; name_bit=''
         for splt_index, splt_bit in enumerate(splt):
-          if upper(splt_bit) == splt_bit: name_bit+=splt_bit+', '
+          if splt_bit.upper() == splt_bit: name_bit+=splt_bit+', '
           else:                           surname+=splt_bit+' '
         
         surname=surname.strip()
@@ -147,7 +147,7 @@ def main(args={}):
     all_authors=entry['AuthorList']
     so_bit=entry['SO'];     
     year=entry['PubDate'].split()[0]  #so_bit.split()[0];     
-    where_bit=join(so_bit.split(';')[1:], ';')
+    where_bit=';'.join(so_bit.split(';')[1:])
     title=entry['Title']
     pubstatus=entry['PubStatus'] 
     ## common ?
@@ -175,16 +175,16 @@ def main(args={}):
       if ref_style =='pnas':
 
         if output_format=='txt':
-          textout+=u'{citk}{aut} ({year}) {title} {jour} {where}\n'.format(aut=author_summary, year=year, title=title, jour=journal_brief, where=where_bit, citk=citk)
+          textout+='{citk}{aut} ({year}) {title} {jour} {where}\n'.format(aut=author_summary, year=year, title=title, jour=journal_brief, where=where_bit, citk=citk)
         elif output_format=='html':
-          textout+=u'<p>{citk}{aut} ({year}) {title} <i>{jour}</i> {where}</p>'.format(aut=author_summary, year=year, title=title, jour=journal_brief, where=where_bit, citk=citk)
+          textout+='<p>{citk}{aut} ({year}) {title} <i>{jour}</i> {where}</p>'.format(aut=author_summary, year=year, title=title, jour=journal_brief, where=where_bit, citk=citk)
 
       elif ref_style =='elife':
         splt=author_summary.split(', ')
-        first_author=splt[0];     rest_authors=join(splt[1:], ', ')
+        first_author=splt[0];     rest_authors=', '.join(splt[1:])
         if rest_authors: rest_authors=', '+rest_authors
         splt=where_bit.split(':')
-        first_where=splt[0];     rest_where=join(splt[1:], ':')
+        first_where=splt[0];     rest_where=':'.join(splt[1:])
         if '(' in first_where: first_where=first_where.split('(')[0]
         if rest_where: rest_where=':'+rest_where
         doi_bit=' doi: '+doi+'.' if doi !='None' else ''
@@ -195,7 +195,7 @@ def main(args={}):
         elif output_format=='html':
           ### formatted
           #textout+=u'<p>{citk}<b>{faut}</b>{raut}. {year}. {title} <i>{jour}</i> <b>{fwhere}</b>{rwhere}. <font color="blue">{doi}</font>.</p>'.format(faut=first_author, raut=rest_authors, year=year, title=title, jour=journal_brief, fwhere=first_where, rwhere=rest_where, doi=doi_bit,  citk=citk)
-          textout+=u'<p>{citk}{faut}{raut}. {year}. {title} <i>{jour}</i> <b>{fwhere}</b>{rwhere}.{doi}</p>'.format(faut=first_author, raut=rest_authors, year=year, title=title, jour=journal_brief, fwhere=first_where, rwhere=rest_where, doi=doi_bit,  citk=citk)
+          textout+='<p>{citk}{faut}{raut}. {year}. {title} <i>{jour}</i> <b>{fwhere}</b>{rwhere}.{doi}</p>'.format(faut=first_author, raut=rest_authors, year=year, title=title, jour=journal_brief, fwhere=first_where, rwhere=rest_where, doi=doi_bit,  citk=citk)
         
 
     
@@ -203,9 +203,9 @@ def main(args={}):
   if output_format=='html':  textout+='</body>'
 
   if output_format=='txt':
-    print textout.encode('utf8', errors='replace')
+    print(textout.encode('utf8', errors='replace'))
   elif output_format=='html':
-    print textout.encode('ascii', 'xmlcharrefreplace')
+    print(textout.encode('ascii', 'xmlcharrefreplace'))
 
   ###############
 
