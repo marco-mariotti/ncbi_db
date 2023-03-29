@@ -2,12 +2,10 @@
 from string import *
 import sys
 from subprocess import *
-sys.path.insert(0, "/users/rg/mmariotti/libraries/")
-sys.path.append('/users/rg/mmariotti/scripts')
-from MMlib import *
+from .MMlib3 import *
 from Bio import Entrez, SeqIO
-import time 
-Entrez.email = "dpto.bioinformatics@crg.es"
+import time
+Entrez.email = None 
 
 help_msg="""Program to fetch entries from the ncbi sequence databases through the internet and print information such as its sequence or the source organism. It wraps Bio->Entrez and Bio->SeqIO.
 
@@ -36,11 +34,12 @@ MSYAADVLNSAHLELHGGGDAELRRPFDPTAHDLDASFRLTRFADLKGRGCKVPQDVLSK
 LVSALQQDYSAQDQEPQFLNVAIPRIGIGLDCSVIPLRHGGLCLVQTTDFFYPIV
 
 ### Options:
--a     +                  max attempts numbers. Sometimes unstability of network results in failed attempts to reach ncbi. The program tries by default this number of times before giving up. There's a 1 sec wait between attempts. Set -a to 0 to never give up. Careful: if this number is high (or 0), it means it takes a long time before it realizes there's a problem, like: no internet connection.
--w     +                  compulsory waiting time between NCBI connections
--b                        batch size. default is 50, but it is lowered by 15% if the following error is found: IOError("Requested URL too long (try using EPost?)") 
--print_opt                print currently active options
--h OR --help              print this help and exit
+-e     +         email provided to NCBI Entrex
+-a     +         max attempts numbers. Sometimes unstability of network results in failed attempts to reach ncbi. The program tries by default this number of times before giving up. There's a 1 sec wait between attempts. Set -a to 0 to never give up. Careful: if this number is high (or 0), it means it takes a long time before it realizes there's a problem, like: no internet connection.
+-w     +         compulsory waiting time between NCBI connections
+-b               batch size. default is 50, but it is lowered by 15% if the following error is found: IOError("Requested URL too long (try using EPost?)") 
+-print_opt       print currently active options
+-h OR --help     print this help and exit
 
 ### When used as function imported in another python program, the "main" function must be run using the opt hash which you would use to get the information, and using the opt['silent']=1.  Example:
 from fetch_ncbi_sequences import main; out_hash=main({'I':'AAB88790', 'f':1, 'silent':1})
@@ -49,14 +48,15 @@ An out_hash is returned,   with as key the id provided and as value a list [full
 
 command_line_synonyms={}
 
-def_opt= {'temp':'/users-d3/mmariotti/temp', 
-'m':'', 'a':100,
-'i':0, 'I':'',
-'M':0, 'L':0,
-'f':0, 't':0, 'o':0,
-'v':0, 'Q':0, 'x':0,
-'w':0.5,
-'b':50, 'silent':0
+def_opt= {'temp':'/tmp/', 
+          'm':'', 'a':100,
+          'i':0, 'I':'',
+          'M':0, 'L':0,
+          'f':0, 't':0, 'o':0,
+          'v':0, 'Q':0, 'x':0,
+          'w':0.5,
+          'b':50, 'silent':0,
+          'e':None
 }
 
 mode_synonyms={'N':'nucleotide', 'P':'Protein'}
@@ -86,6 +86,8 @@ def main(args={}):
   #global temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)
   #global split_folder;    split_folder=Folder(opt['temp']);               test_writeable_folder(split_folder); set_MMlib_var('split_folder', split_folder) 
 
+  if opt['e']:
+    Entrez.email = opt['e']
   import ncbi_taxonomy
 
 
@@ -184,7 +186,7 @@ def main(args={}):
             for k in sorted(record.keys()):
               write( str(k.ljust(20)) + ' '+str(record[k]), 1)
               header=''
-          else: 
+          if True: #
             seq=record['GBSeq_sequence'].upper()          
             organism=record['GBSeq_organism']
             #taxonomy=record['GBSeq_taxonomy']+' -> '+organism   ### ---> this is approximate and does not contain all the sublevels. also, it is not available for nucleotides, which makes the whole thing undesirable.
@@ -211,8 +213,9 @@ def main(args={}):
                id_string+=  a_id 
               header+=' '+id_string+' '+record['GBSeq_definition']        
 
-          if header.split()[0] in headers_checklist: continue
-          headers_checklist[header.split()[0]]=True
+          if header.split():
+            if header.split()[0] in headers_checklist: continue        
+            headers_checklist[header.split()[0]]=True
               
           ##########
             

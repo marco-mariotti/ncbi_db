@@ -2,12 +2,13 @@
 from string import *
 import sys
 from subprocess import *
-sys.path.insert(0, "/users/rg/mmariotti/libraries/")
-sys.path.append('/users/rg/mmariotti/scripts')
-from MMlib import *
+from .MMlib3 import *
 from Bio import Entrez
 from time import sleep
-import  search_ncbi_entries
+from .search_ncbi_entries import main as run_search_ncbi_entries
+
+
+
 Entrez.email = "dpto.bioinformatics@crg.es"
 
 help_msg="""Search or fetch entries (species or lineages) from the ncbi taxonomy database through internet and print information for each hit. It wraps functions from Bio->Entrez.
@@ -47,7 +48,7 @@ If used as a function (imported in another python program), the main() function 
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/users-d3/mmariotti/temp', 
+def_opt= { 
 'i':0, 'I':'', 'L':0,
 'S':"", 'c':0, 'm':0, 'r':0, 's':0, 'D':0, 'n':0,
 'v':0, 'Q':0,
@@ -143,25 +144,25 @@ def main(args={}):
     if "_"in opt['S'] and not ' ' in opt['S']:      opt['S']=replace_chars(opt['S'], '_', ' ')
     opt['S']=unmask_characters(opt['S'])
     search_ncbi_entries_opt={'silent':1, 's':opt['S'], 'm':'T', 'a':opt['a']}
-    id_list= search_ncbi_entries.main(search_ncbi_entries_opt)    
+    id_list= run_search_ncbi_entries(search_ncbi_entries_opt)    
       
     # searching again changing characters such as "_", ":"
     if not id_list:
       search_ncbi_entries_opt['s']=replace_chars(opt['S'], '_', ' ')
-      id_list= search_ncbi_entries.main(search_ncbi_entries_opt)
+      id_list= run_search_ncbi_entries(search_ncbi_entries_opt)
     if not id_list:
       search_ncbi_entries_opt['s']=replace_chars(opt['S'], ':', ' ')
-      id_list= search_ncbi_entries.main(search_ncbi_entries_opt)
+      id_list= run_search_ncbi_entries(search_ncbi_entries_opt)
     if not id_list:
       search_ncbi_entries_opt['s']=replace_chars(opt['S'], '()', ' ')
-      id_list= search_ncbi_entries.main(search_ncbi_entries_opt)
+      id_list= run_search_ncbi_entries(search_ncbi_entries_opt)
     
     if opt['D'] and not id_list:
       # approximate match      
       search_string= opt['S'];       search_string= ' '.join(search_string.split()[:len(search_string.split())-1])
       while not id_list and search_string:
         search_ncbi_entries_opt={'silent':1, 's':search_string, 'm':'T', 'a':opt['a']}
-        id_list= search_ncbi_entries.main(search_ncbi_entries_opt)
+        id_list= run_search_ncbi_entries(search_ncbi_entries_opt)
         if not id_list: search_string= ' '.join(search_string.split()[:len(search_string.split())-1])        
 
       if not search_string:
@@ -169,7 +170,7 @@ def main(args={}):
         search_string= replace_chars(opt['S'], '_', ' ');       search_string= ' '.join(search_string.split()[:len(search_string.split())-1])
         while not id_list and search_string:
           search_ncbi_entries_opt={'silent':1, 's':search_string, 'm':'T', 'a':opt['a']}
-          id_list= search_ncbi_entries.main(search_ncbi_entries_opt)
+          id_list= run_search_ncbi_entries(search_ncbi_entries_opt)
           if not id_list: search_string= ' '.join(search_string.split()[:len(search_string.split())-1])        
 
       if id_list and search_string: printerr('WARNING returning the approximate match reducing: "'+opt['S']+'"  to:  "'+search_string+'"', 1)

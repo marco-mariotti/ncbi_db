@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-from ncbi_lib import *
+from .ncbi_lib import *
 help_msg="""Utility to search/fetch any NCBI db and print info about results.
 
 Usage #1 (search&fetch):  ncbi_search.py [dbname] -KEY1 "VALUE1" [-KEY2 "VALUE2"] [options]
@@ -22,7 +22,7 @@ For a list of keywords for a certain dbname, run: ncbi_db_info.py dbname
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/users-d3/mmariotti/temp', 
+def_opt= { 
 'i':0, 'I':0, 'd':0, 'o':0,
 'v':0, 'x':0, 't':0, 
 'retmax':250, 'max_attempts':10, 'sleep_time':5, 

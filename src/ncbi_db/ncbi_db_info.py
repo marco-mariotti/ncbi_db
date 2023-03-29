@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-from ncbi_lib import *
+from .ncbi_lib import *
 help_msg=""" Displays information about ncbi db that can be queried through the Entrez module. Usage:
 
 $  ncbi_db_info.py    db_name
@@ -11,7 +11,7 @@ To get a list of possible db_name, run with no options
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/users-d3/mmariotti/temp', 
+def_opt= { 
 'i':0, }
 
 

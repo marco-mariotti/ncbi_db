@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-from ncbi_lib import *
+from .ncbi_lib import *
 
 
 help_msg="""Interrogates NCBI online through Bio.Entrez, retrieves info (and files) related to the genomic assemblies for an organism or lineage. 
@@ -64,7 +64,7 @@ Normally the 'genome' db is queried, and the corresponding 'assembly' entries ar
 
 command_line_synonyms={}
 
-def_opt= { 'temp':'/users-d3/mmariotti/temp', 
+def_opt= { 'temp':'/tmp/', 
 'S':'',   'tax':False, 'aa':0,
 'z':0, 'e':0, 'n':0,
 'tab':0, 
@@ -365,8 +365,10 @@ See --help""")
         md5sum_hash=None
 
         for file_type in types_to_download:
-          ftp_path=       assembly_e['ftp:'+file_type]
-          check_ftp_path= assembly_e['?'+file_type]
+          ftp_path=       assembly_e['ftp:'+file_type]            
+          check_ftp_path= (assembly_e['?'+file_type]    if ('?'+file_type) in assembly_e else
+                           assembly_e['#'+file_type])          
+
           ftp_path_cut=   ftp_path[ 6+ (ftp_path[6:].find('/')+1): ]
 
           if ftp_path=='None':            continue

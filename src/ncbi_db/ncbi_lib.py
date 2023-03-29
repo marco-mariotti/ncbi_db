@@ -1,7 +1,6 @@
 from string import *
 import sys
-sys.path.append('/users-d3/mmariotti/scripts')
-from MMlib import *
+from MMlib3 import *
 from Bio import Entrez 
 from urllib.error import URLError
 from ftplib import FTP
@@ -9,8 +8,7 @@ import gzip
 import shutil
 from time import strptime, sleep
 import traceback
-
-Entrez.email = "marco.mariotti@crg.es"  #for Entrez
+Entrez.email = None
 
 #### NOTE some values must be defined in MMlib.opt:
 # sleep_time

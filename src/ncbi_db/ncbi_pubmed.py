@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-from ncbi_lib import *
+from .ncbi_lib import *
 help_msg="""Utility to search pubmed entries online and get formatted reference-style entries 
 Usage:
 $ ncbi_pubmed.py   [search]   [output]
@@ -31,7 +31,7 @@ $ ncbi_pubmed.py   [search]   [output]
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/users-d3/mmariotti/temp', 
+def_opt= { 
 'P':0, 'p':0, 'kp':0,
 's':'info',
 'f':'txt',

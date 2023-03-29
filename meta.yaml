@@ -1,0 +1,38 @@
+package:
+  name:    {{ name }}
+  version: {{ version }}
+
+source:
+  url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
+
+
+build:
+  number: 0
+  noarch: python
+  #entry_points:
+  #  - selenoprofiles = selenoprofiles4.selenoprofiles4:main
+
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - pip
+    - python >=3.6
+  run:
+    - python >=3.6
+    - biopython  >=1.46
+    - ete3
+    - lxml
+
+about:
+  home: "https://github.com/marco-mariotti/{{ name }}"
+  license: MIT
+  license_family: MIT
+  license_file: 
+  summary: "Collection of scripts that wrap the Entrez Bio python module, to query and download portions of NCBI databases"
+  doc_url: 
+  dev_url: 
+
+extra:
+  recipe-maintainers:
+    - marco-mariotti

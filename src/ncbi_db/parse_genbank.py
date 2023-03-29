@@ -1,10 +1,10 @@
-#! /usr/bin/python -u
+#! /usr/bin/env python3
 from string import *
 import sys
-from commands import *
-sys.path.append('/home/mmariotti/scripts')
-from MMlib import *
-import gbparsy # import GBParsy module
+from subprocess import *
+from .MMlib3 import *
+#import gbparsy # import GBParsy module
+
 
 help_msg="""Extract specific feature from a GenBank flat file, using the GBParsy module.
 
@@ -32,7 +32,7 @@ Extract mRNA:      # parse_genbank.py genbank.gbff -f mRNA > mRNAs.fa"""
 
 command_line_synonyms={}
 
-def_opt= { #'temp':'/home/mmariotti/temp', 
+def_opt= { 
 'i':0, 'q':0, 's':0, 'p':0, 'd':0, 'l':0,
 'f':'gene', 't':'auto', 
 'x':0, 'g':0,
@@ -45,12 +45,16 @@ def_opt= { #'temp':'/home/mmariotti/temp',
 def main(args={}):
 #########################################################
 ############ loading options
+  import gbparsy # import GBParsy module
+  
+
   global opt
   if not args: opt=command_line(def_opt, help_msg, 'io', synonyms=command_line_synonyms )
   else:  opt=args
   set_MMlib_var('opt', opt)
   #checking input
 
+  
   check_file_presence(opt['i'], 'Genbank gbff input file')
   sFileName = opt['i'];  sFeature = opt['f'];  
   sQualifiers = []  if not opt['q'] else opt['q'].split(',')
@@ -96,7 +100,7 @@ def main(args={}):
         
         accession = dSeqData['version']  if 'version' in dSeqData and dSeqData['version'] else    dSeqData['accession'] 
         source_title='{id} {desc}'.format(id=accession, desc=dSeqData['definition'])   ### you also have organism, lineage ...
-        write(">{tit}\n{seq}".format(tit=source_title, seq=fasta(   upper(dSeqData['sequence']))  ),1  )
+        write(">{tit}\n{seq}".format(tit=source_title, seq=fasta(   dSeqData['sequence'].upper())  ),1  )
         continue
 
       for dFeature in dSeqData["features"]:
@@ -124,7 +128,7 @@ def main(args={}):
               added_suffix=0
               while title in id_dictionary:
                 if not added_suffix:  title=title+'-'+str(added_suffix+1)
-                else:                 title=   join(title.split('-')[:-1], '-') +'-'+str(added_suffix+1)
+                else:                 title=   '-'.join(title.split('-')[:-1]) +'-'+str(added_suffix+1)
                 added_suffix+=1
 
               id_dictionary[title]=True
@@ -195,7 +199,7 @@ sNorBase = "ACGTRYMKWSBDHVNacgtrymkwsbdhvn";
 sComBase = "TGCAYRKMWSVHDBNtgcayrkmwsvhdbn";
 
 def getRevCom(sSequence):
-    lSequence = map(lambda x: sComBase[sNorBase.find(x)], sSequence)
+    lSequence = [sComBase[sNorBase.find(x)] for x in sSequence]
     lSequence.reverse()
     return "".join(lSequence)
 

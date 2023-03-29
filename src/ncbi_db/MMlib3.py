@@ -3647,9 +3647,9 @@ merge_genes(gene_list)       merge a list of genes to remove redundancy. It has 
     if type(gff_file)==str and os.path.isfile(gff_file):
       gff_lines=open(gff_file, 'r').readlines()
       self.id=gff_file
-    elif type(gff_file)==file:
-      gff_lines=gff_file.readlines()
-      self.id=gff_file.name
+    # elif type(gff_file)==file:
+    #   gff_lines=gff_file.readlines()
+    #   self.id=gff_file.name
     else: #string
       gff_lines=gff_file.split('\n')
     try:

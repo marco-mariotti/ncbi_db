@@ -2,9 +2,7 @@
 from string import *
 import sys
 from subprocess import *
-sys.path.insert(0, "/users/rg/mmariotti/libraries/")
-sys.path.append('/users/rg/mmariotti/scripts')
-from MMlib import *
+from .MMlib3 import *
 from Bio import Entrez
 from time import sleep
 
@@ -32,7 +30,7 @@ For tools more specialized than this, see fetch_ncbi_sequences.py and ncbi_taxon
 
 command_line_synonyms={}
 
-def_opt= {'temp':'/users-d3/mmariotti/temp', 
+def_opt= {
 's':'',
 'm':'P',
 'v':0, 'Q':0, 'a':100,
