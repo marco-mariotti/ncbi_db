@@ -12,7 +12,6 @@ build:
   entry_points:
     - ncbi_sequences = ncbi_db:run_ncbi_sequences
     - ncbi_assembly = ncbi_db:run_ncbi_assembly
-    - ncbi_db_info = ncbi_db:run_ncbi_db_info
     - ncbi_pubmed = ncbi_db:run_ncbi_pubmed
     - ncbi_search = ncbi_db:run_ncbi_search
     - ncbi_taxonomy = ncbi_db:run_ncbi_taxonomy
@@ -38,7 +37,7 @@ about:
   license: MIT
   license_family: MIT
   license_file: 
-  summary: "Collection of scripts that wrap the Entrez Bio python module, to query and download portions of NCBI databases"
+  summary: "Utilities to query and download NCBI data"
   doc_url: 
   dev_url: 
 
