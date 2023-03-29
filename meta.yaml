@@ -9,8 +9,15 @@ source:
 build:
   number: 0
   noarch: python
-  #entry_points:
-  #  - selenoprofiles = selenoprofiles4.selenoprofiles4:main
+  entry_points:
+    - ncbi_sequences = ncbi_db:run_ncbi_sequences
+    - ncbi_assembly = ncbi_db:run_ncbi_assembly
+    - ncbi_db_info = ncbi_db:run_ncbi_db_info
+    - ncbi_pubmed = ncbi_db:run_ncbi_pubmed
+    - ncbi_search = ncbi_db:run_ncbi_search
+    - ncbi_taxonomy = ncbi_db:run_ncbi_taxonomy
+    - ncbi_taxonomy_tree = ncbi_db:run_ncbi_taxonomy_tree
+    - parse_genbank = ncbi_db:run_parse_genbank
 
   script: "{{ PYTHON }} -m pip install . -vv"
 
@@ -23,6 +30,8 @@ requirements:
     - biopython  >=1.46
     - ete3
     - lxml
+    - six
+    - easyterm
 
 about:
   home: "https://github.com/marco-mariotti/{{ name }}"

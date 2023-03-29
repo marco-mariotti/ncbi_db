@@ -1,11 +1,22 @@
 # ncbi_db
-Collection of scripts that wrap the Entrez Bio python module.
-Mainly to build your own copy of selected entries form the ncbi databases
+Collection of commands to query or process NCBI data
 
-Right now these tools are available: 
+## Installation
+conda install -c mmariotti ncbi_db
 
-- ncbi_lib.py          library of functions; not to be executed
-- ncbi_db_info.py      simply to display the available fields in any ncbi DB, browsable through the BioPython tools
-- ncbi_assembly.py     to browse the available assemblies/genomes for any species or lineage, including their annotation/proteome, and possibly download them in a local folder
-- parse_genbank.py     parse a gbf file to extract selected entries. Requires GBParsy module
-- ncbi_pubmed.py       wrapper to ncbi pubmed search engine; it can format results for bibliography
+## Tools
+These tools are available:
+
+- *ncbi_assembly*       search and download assemblies/genomes for any species/lineage, or its annotation/proteome
+- *ncbi_sequences*      search and download nucleotide/protein sequences or their metadata
+- *ncbi_pubmed*         search and format ncbi pubmed entries
+- *ncbi_taxonomy*       search ncbi taxonomy for species or lineages
+- *ncbi_taxonomy_tree*  obtain a tree from ncbi taxonomy for a set of input species
+- *ncbi_search*         generic search tool for any ncbi DB
+- *parse_genbank*       parse a genbank flat file; requires installation of GBParsy
+
+
+Run any tool with option -h to display its usage.
+
+Most tools require internet, as they connect online to ncbi.
+

@@ -1,5 +1,11 @@
 #! /usr/bin/env python3
 from .ncbi_lib import *
+from functools import cmp_to_key
+from lxml.etree import XMLSyntaxError
+
+def cmp(a, b):
+    return (a > b) - (a < b) 
+
 help_msg="""Utility to search/fetch any NCBI db and print info about results.
 
 Usage #1 (search&fetch):  ncbi_search.py [dbname] -KEY1 "VALUE1" [-KEY2 "VALUE2"] [options]
@@ -9,8 +15,10 @@ Usage #2b (fetch):        ncbi_search.py [dbname] -I id1,id2,id3       [options]
 Example:   ncbi_search.py  sra  -titl RRBS -orgn "Mus musculus"
 
 Quotes can be omitted for single-word values.
-For a list of databases, run:                     ncbi_db_info.py
-For a list of keywords for a certain dbname, run: ncbi_db_info.py dbname
+
+### to gather information on available databases:
+ncbi_search -list          :  shows the list of available databases
+ncbi_search -info dbname   :  shows the list of keywords for a certain dbname
 
 ### options:
 -o  f1,f2,f3  limits the output to these fields only
@@ -25,7 +33,8 @@ command_line_synonyms={}
 def_opt= { 
 'i':0, 'I':0, 'd':0, 'o':0,
 'v':0, 'x':0, 't':0, 
-'retmax':250, 'max_attempts':10, 'sleep_time':5, 
+'retmax':250, 'max_attempts':10, 'sleep_time':5,
+    'list':0, 'info':0,
 }
 
 #########################################################
@@ -37,13 +46,25 @@ def main(args={}):
 #########################################################
 ############ loading options
   global opt
-  if not args: opt=command_line(def_opt, help_msg, 'd', synonyms=command_line_synonyms, nowarning=1)
-  else:  opt=args
+  if not args:
+      opt=command_line(def_opt, help_msg, 'd', synonyms=command_line_synonyms, nowarning=1)
+  else:
+      opt=args
+  
   set_MMlib_var('opt', opt)
   #global temp_folder; temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)
   #global split_folder;    split_folder=Folder(opt['temp']);               test_writeable_folder(split_folder); set_MMlib_var('split_folder', split_folder) 
   #checking input
 
+  if opt['list']:
+      from .ncbi_db_info import main as run_ncbi_db_info
+      run_ncbi_db_info(args={})
+      sys.exit()
+  if opt['info']:
+      from .ncbi_db_info import main as run_ncbi_db_info
+      run_ncbi_db_info(args={'i':opt['info']})
+      sys.exit()
+      
   dbname=opt['d']
   
   if not opt['i'] or opt['I']:
@@ -74,13 +95,13 @@ def main(args={}):
   if opt['r']:
     all_fields=set()
     for e in entries: all_fields.update(list(e.keys()))
-    all_fields=sorted(all_fields, cmp=lambda x,y:-1 if x=='Id' else   (+1 if y=='Id' else cmp(x,y))) 
+    all_fields=sorted(all_fields, key=cmp_to_key(lambda x,y:-1 if x=='Id' else   (+1 if y=='Id' else cmp(x,y))))
 
   if opt['r']: write('\t'.join([f for f in all_fields if possible_fields is None or f.lower() in possible_fields]), 1)  #header
 
   for ei, e in enumerate(entries):
     if opt['r']:   target_fields=all_fields
-    else:          target_fields=sorted(list(e.keys()), cmp=lambda x,y:-1 if x=='Id' else   (+1 if y=='Id' else cmp(x,y))) 
+    else:          target_fields=sorted(list(e.keys()), key=cmp_to_key(lambda x,y:-1 if x=='Id' else   (+1 if y=='Id' else cmp(x,y))))
     for i, k in enumerate(target_fields):      
       if possible_fields is None or k.lower() in possible_fields:
         if opt['r'] and not k in e: 

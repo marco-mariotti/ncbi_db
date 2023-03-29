@@ -98,8 +98,8 @@ def main(args={}):
 #######################################################################################################################################
 
 def close_program():
-  if 'temp_folder' in globals() and is_directory(temp_folder):
-    bbash('rm -r '+temp_folder)
+  # if 'temp_folder' in globals() and is_directory(temp_folder):
+  #   bbash('rm -r '+temp_folder)
   try:
     if get_MMlib_var('printed_rchar'): 
       printerr('\r'+printed_rchar*' ' ) #flushing service msg space       

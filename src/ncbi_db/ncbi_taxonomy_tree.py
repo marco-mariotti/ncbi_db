@@ -6,8 +6,9 @@ import argparse
 from ete3 import Tree
 from collections import defaultdict
 from .MMlib3 import bbash,unmask_characters,mask_characters,get_taxids_from_ncbi_db
-
-
+from easyterm import NoTracebackError
+from .ncbi_taxonomy_tree_db import main as run_ncbi_taxonomy_tree_db
+from pathlib import Path
 
 def get_parser():
     """returns the argparse parser object with the argument option requirements"""
@@ -85,8 +86,11 @@ def get_parser():
                         type=float,
                         default=300)
     database.add_argument('-db', '--database',
-                        help="tax.db file. See ~dsantesmasses/Scripts/ncbi_taxonomy_tree_db.py",
-                        default='/Databases/NCBI/taxonomy_db/tax.db')
+                          help="tax.db file. See --makedb to obtain it. If not specified, reads path from ~/.ncbi_taxdb if existing",
+                          default=None)
+    database.add_argument('-mdb', '--makedb',
+                        help="Create a tax.db file. For a dedicated help page, run: ncbi_taxonomy_tree --makedb -h",
+                          default=None)
 
     return parser
 
@@ -207,12 +211,31 @@ def print_stderr(msg, quiet=False):
         sys.stderr.write(msg)
 
 
-def main(args):
+def main(args=None):
+
+    if args is None:
+
+        if '--makedb' in sys.argv or '-mdb' in sys.argv:
+            sys.argv = [x for x in sys.argv if not x in ['--makedb', '-mdb']]
+            run_ncbi_taxonomy_tree_db()
+            sys.exit()
+
+        parser = get_parser()
+        args = parser.parse_args()
 
     ranks = ['superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
 
+
     # ncbi database file
-    if not os.path.exists(args.database): raise Exception('file not found: %s\n' % args.database)
+    if args.database is None:
+        userfile=str(Path.home())+'/.ncbi_taxdb'
+        if os.path.exists(userfile):
+            with open(userfile) as fr:
+                content=fr.readline().strip()
+            args.database=content.split('ncbi_taxdb')[1].split('=')[1].strip()
+            
+    if args.database is None or not os.path.exists(args.database):
+        raise NoTracebackError('ERROR: --database file not found: %s\nPerhaps you never built a NCBI tax.db? Try to run this in a folder of your choice to do it:\n\nncbi_taxonomy_tree db\n\nRun with -h for help' % args.database)
 
     #### INPUT
     # if input file contains taxonomy ids
@@ -667,7 +690,5 @@ taxids_remove is an empty list """
 
       
 if __name__ == '__main__':
-    parser = get_parser()
-    args = parser.parse_args()
-    main(args)
+    main()
 

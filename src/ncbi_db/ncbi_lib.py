@@ -1,6 +1,6 @@
 from string import *
 import sys
-from MMlib3 import *
+from .MMlib3 import *
 from Bio import Entrez 
 from urllib.error import URLError
 from ftplib import FTP

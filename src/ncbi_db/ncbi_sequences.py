@@ -3,13 +3,14 @@ from string import *
 import sys
 from subprocess import *
 from .MMlib3 import *
+from .ncbi_taxonomy import main as run_ncbi_taxonomy
 from Bio import Entrez, SeqIO
 import time
 Entrez.email = None 
 
 help_msg="""Program to fetch entries from the ncbi sequence databases through the internet and print information such as its sequence or the source organism. It wraps Bio->Entrez and Bio->SeqIO.
 
-fetch_ncbi_sequences.py  [mode] [ids] [options]
+ncbi_sequences  [mode] [ids] [options]
 
 ## Define mode (which ncbi database is queried):
 -m  +      Possibilities: N -> nucleotide, P -> protein
@@ -34,7 +35,7 @@ MSYAADVLNSAHLELHGGGDAELRRPFDPTAHDLDASFRLTRFADLKGRGCKVPQDVLSK
 LVSALQQDYSAQDQEPQFLNVAIPRIGIGLDCSVIPLRHGGLCLVQTTDFFYPIV
 
 ### Options:
--e     +         email provided to NCBI Entrex
+-e     +         email provided to NCBI Entrez
 -a     +         max attempts numbers. Sometimes unstability of network results in failed attempts to reach ncbi. The program tries by default this number of times before giving up. There's a 1 sec wait between attempts. Set -a to 0 to never give up. Careful: if this number is high (or 0), it means it takes a long time before it realizes there's a problem, like: no internet connection.
 -w     +         compulsory waiting time between NCBI connections
 -b               batch size. default is 50, but it is lowered by 15% if the following error is found: IOError("Requested URL too long (try using EPost?)") 
@@ -42,7 +43,7 @@ LVSALQQDYSAQDQEPQFLNVAIPRIGIGLDCSVIPLRHGGLCLVQTTDFFYPIV
 -h OR --help     print this help and exit
 
 ### When used as function imported in another python program, the "main" function must be run using the opt hash which you would use to get the information, and using the opt['silent']=1.  Example:
-from fetch_ncbi_sequences import main; out_hash=main({'I':'AAB88790', 'f':1, 'silent':1})
+from ncbi_db import run_ncbi_sequences; out_hash=run_ncbi_sequences({'I':'AAB88790', 'f':1, 'silent':1})
 An out_hash is returned,   with as key the id provided and as value a list [full_id, seq_if_requested, taxonomy_+_species_if_requested]. Full_id is minimal if option M is active
 """
 
@@ -88,8 +89,6 @@ def main(args={}):
 
   if opt['e']:
     Entrez.email = opt['e']
-  import ncbi_taxonomy
-
 
   #mode
   if not opt['m']:  raise Exception("ERROR you must specify a mode with option -m (N|P). See --help")
@@ -237,7 +236,7 @@ def main(args={}):
           
         if opt['t']:
           ncbi_tax_opt={'silent':True, 'S':organism, 'a':opt['a']}
-          results=ncbi_taxonomy.main( ncbi_tax_opt )
+          results=run_ncbi_taxonomy( ncbi_tax_opt )
           if len(results)==0:
             if not opt['silent']: printerr("WARNING! organism " +organism+" returned no results in taxonomy! keeping this empty", 1)
             taxonomy = 'unknown'
