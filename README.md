@@ -20,3 +20,6 @@ Run any tool with option -h to display its usage.
 
 Most tools require internet, as they connect online to ncbi.
 
+## Developers
+Marco Mariotti https://github.com/marco-mariotti
+Didac Santesmasses https://github.com/didacs
