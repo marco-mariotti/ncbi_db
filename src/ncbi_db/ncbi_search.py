@@ -50,6 +50,9 @@ def main(args={}):
       opt=command_line(def_opt, help_msg, 'd', synonyms=command_line_synonyms, nowarning=1)
   else:
       opt=args
+      for k in def_opt:
+          if k not in opt:
+              opt[k]=def_opt[k]      
   
   set_MMlib_var('opt', opt)
   #global temp_folder; temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)

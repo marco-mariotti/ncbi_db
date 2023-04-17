@@ -1,14 +1,34 @@
 from string import *
 import sys
 from .MMlib3 import *
-from Bio import Entrez 
+from Bio import Entrez
 from urllib.error import URLError
 from ftplib import FTP
 import gzip
 import shutil
 from time import strptime, sleep
 import traceback
+import easyterm
+from pathlib import Path
 Entrez.email = None
+
+ncbi_config=easyterm.commandlineopt.CommandLineOptions({
+  'ncbi_taxdb':'',
+  'email':'',
+  })
+
+def load_ncbi_config():
+  #nonlocal ncbi_config
+  ncbi_config_file=Path( Path.home()+'/.ncbi_db' )
+  if ncbi_config_file.is_file():
+    ncbi_config.update(
+      easyterm.read_config_file(str(ncbi_config_file))
+      )
+
+def save_ncbi_config():
+  #nonlocal ncbi_config
+  ncbi_config_file=Path( Path.home()+'/.ncbi_db' )
+  ncbi_config.write_config_file(str(ncbi_config_file))
 
 #### NOTE some values must be defined in MMlib.opt:
 # sleep_time
@@ -18,7 +38,7 @@ set_MMlib_var('opt', options( {'retmax':250, 'max_attempts':10, 'sleep_time':5, 
 
 """ Wrapping default Entrez methods to connect to ncbi to allow network problems and batch requests"""
 def esearch(**keyargs):
-  """ Generic wrap. You should use term=..  and db=..  and field=..  
+  """ Generic wrap. You should use term=..  and db=..  and field=..
   Note: these will be used:  opt['max_attempts']   opt['sleep_time']; opt['retmax']
    where opt is get_MMlib_var('opt')   [you can set it with  set_MMlib_var('opt', opt) ]
   Returns a list of uids (strings) """
