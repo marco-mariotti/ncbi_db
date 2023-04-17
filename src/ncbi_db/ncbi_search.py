@@ -8,33 +8,34 @@ def cmp(a, b):
 
 help_msg="""Utility to search/fetch any NCBI db and print info about results.
 
-Usage #1 (search&fetch):  ncbi_search.py [dbname] -KEY1 "VALUE1" [-KEY2 "VALUE2"] [options]
-Usage #2a (fetch):        ncbi_search.py [dbname] -i file_list_of_ids  [options]
-Usage #2b (fetch):        ncbi_search.py [dbname] -I id1,id2,id3       [options]
+Usage #1 (search&fetch):  ncbi_search [dbname] -KEY1 "VALUE1" [-KEY2 "VALUE2"] [options]
+Usage #2a (fetch):        ncbi_search [dbname] -i file_list_of_ids  [options]
+Usage #2b (fetch):        ncbi_search [dbname] -I id1,id2,id3       [options]
 
 Example:   ncbi_search.py  sra  -titl RRBS -orgn "Mus musculus"
-
 Quotes can be omitted for single-word values.
 
-### to gather information on available databases:
-ncbi_search -list          :  shows the list of available databases
-ncbi_search -info dbname   :  shows the list of keywords for a certain dbname
+### To gather information on available databases:
+Usage #3 (list DBs):        ncbi_search -list
+Usage #4 (list keywords):   ncbi_search -info dbname
 
 ### options:
 -o  f1,f2,f3  limits the output to these fields only
 -x            do not attempt to expand XML strings for pretty printing
 -t            tabular output; implies option -x
 -r            reverse table; each entry becomes a line, each field a column
+-email        email address to use with NCBI Entrez. Required for 1st usage of any online query
 -print_opt    print currently active options
 -h OR --help  print this help and exit"""
 
 command_line_synonyms={}
 
 def_opt= { 
-'i':0, 'I':0, 'd':0, 'o':0,
-'v':0, 'x':0, 't':0, 
-'retmax':250, 'max_attempts':10, 'sleep_time':5,
+    'i':0, 'I':0, 'd':0, 'o':0,
+    'v':0, 'x':0, 't':0, 
+    'retmax':250, 'max_attempts':10, 'sleep_time':5,
     'list':0, 'info':0,
+    'email':'',
 }
 
 #########################################################
@@ -58,7 +59,7 @@ def main(args={}):
   #global temp_folder; temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)
   #global split_folder;    split_folder=Folder(opt['temp']);               test_writeable_folder(split_folder); set_MMlib_var('split_folder', split_folder) 
   #checking input
-
+  
   if opt['list']:
       from .ncbi_db_info import main as run_ncbi_db_info
       run_ncbi_db_info(args={})
@@ -68,6 +69,8 @@ def main(args={}):
       run_ncbi_db_info(args={'i':opt['info']})
       sys.exit()
       
+  email_setup(opt['email'])
+  
   dbname=opt['d']
   
   if not opt['i'] or opt['I']:

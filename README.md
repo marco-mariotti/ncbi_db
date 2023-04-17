@@ -2,7 +2,7 @@
 Collection of commands to query or process NCBI data
 
 ## Installation
-conda install -c mmariotti -c conda-forge ncbi_db
+conda install -c mmariotti -c conda-forge -c etetoolkit ncbi_db
 
 ## Tools
 These command line tools are available:

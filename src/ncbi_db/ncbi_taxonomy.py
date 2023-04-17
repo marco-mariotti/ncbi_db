@@ -6,14 +6,12 @@ from .MMlib3 import *
 from Bio import Entrez
 from time import sleep
 from .search_ncbi_entries import main as run_search_ncbi_entries
+from .ncbi_lib import *
 
-
-
-Entrez.email = "dpto.bioinformatics@crg.es"
 
 help_msg="""Search or fetch entries (species or lineages) from the ncbi taxonomy database through internet and print information for each hit. It wraps functions from Bio->Entrez.
 
-ncbi_taxonomy.py  [define taxids || text search]   [other options]
+ncbi_taxonomy  [define taxids || text search]   [other options]
 
 ## Define taxids (alternative, mutually exclusive):
 -i   +     define inputfile  with taxids, one per line
@@ -35,6 +33,7 @@ ncbi_taxonomy.py  [define taxids || text search]   [other options]
 -a     +   max attempts numbers. Sometimes unstability of network results in failed attempts to reach ncbi. The program tries by default this number of times before giving up. There's a wait time of 1 sec between attempts. Set -a to 0 to never give up. Careful: if this number is high (or 0), it means it takes a long time before it realizes there's a problem, like: no internet connection.
 -b         batch size. default is 200, but it is lowered by 15% if the following error is found: IOError("Requested URL too long (try using EPost?)") 
 -v         verbose mode
+-email          email address to use with NCBI Entrez. Required for 1st usage of any online query
 -h OR --help    print this help and exit
 
 ## Output:
@@ -53,6 +52,7 @@ def_opt= {
 'S':"", 'c':0, 'm':0, 'r':0, 's':0, 'D':0, 'n':0,
 'v':0, 'Q':0,
 'b':200, 'silent':0, 'a':100,
+'email':''
 }
 
 
@@ -138,6 +138,8 @@ def main(args={}):
     for line in open(opt['i']):       id_list.append(line[:-1])
   elif opt['I']:    id_list=str(opt['I']).split(',')
   elif not opt['S']:  raise Exception("ERROR must provide ids either with option -i FILE or option -I id1,id2,...,idN, or a search string with opt -S.  Run with option -h for help")
+
+  email_setup(opt['email'])
   
   ########## search string
   if opt['S']:
@@ -194,6 +196,7 @@ def main(args={}):
 
       #### fetching!
       fetch_successful=False
+      error_occurred=None
       attempts=0
       while not fetch_successful and (  attempts < opt['a'] or opt['a']==0):
         try:
@@ -201,14 +204,15 @@ def main(args={}):
           parsed_results=[r for r in Entrez.parse(fetch_handle)]
           fetch_successful=True
         except KeyboardInterrupt:          raise
-        except:
+        except Exception as error:
           service('Something failed (network problem?). Trying again... attempt number: '+str(attempts)+ '(will keep indefinitely'*int(opt['a']==0)+int(opt['a']!=0)*' (will stop at attempt n.'+str(opt['a'])+')')
           sleep(1)
           attempts+=1
-
+          error_occurred=error
+          
       if not fetch_successful:
         printerr("ERROR couldn't fetch results. Number of attempts: "+str(attempts)+'. (Last) exception was: ', 1)
-        raise
+        raise error_occurred
 
       ###### parsing fetch results
       for record in parsed_results:
@@ -259,10 +263,12 @@ def main(args={}):
       id_retrieved_until_now+=len(batch_id_list)
       batch_index+=1
     except IOError as e:
-      if 'Requested URL too long' in e.args[0]:
+      if e.args and 'Requested URL too long' in e.args[0]:
         batch_size=int(batch_size*0.85)
         if not opt['silent']: printerr('requested URL too long... trying to decrease batch size to:'+str(batch_size), 1)
-
+      else:
+        raise e
+          
 
   return output_hash
 #######################################################################################################################################

@@ -5,9 +5,11 @@ import sqlite3
 import argparse
 from ete3 import Tree
 from collections import defaultdict
-from .MMlib3 import bbash,unmask_characters,mask_characters,get_taxids_from_ncbi_db
+from .MMlib3 import bbash, unmask_characters, mask_characters, get_taxids_from_ncbi_db, printerr, random_folder
+import shutil, os
 from easyterm import NoTracebackError
 from .ncbi_taxonomy_tree_db import main as run_ncbi_taxonomy_tree_db
+from .ncbi_lib import load_ncbi_config, save_ncbi_config
 from pathlib import Path
 
 def get_parser():
@@ -227,16 +229,27 @@ def main(args=None):
 
 
     # ncbi database file
+    ncbi_config=load_ncbi_config()    
     if args.database is None:
-        userfile=str(Path.home())+'/.ncbi_taxdb'
-        if os.path.exists(userfile):
-            with open(userfile) as fr:
-                content=fr.readline().strip()
-            args.database=content.split('ncbi_taxdb')[1].split('=')[1].strip()
-            
+        # userfile=str(Path.home())+'/.ncbi_taxdb'
+        # if os.path.exists(userfile):
+        #     with open(userfile) as fr:
+        #         content=fr.readline().strip()
+        #args.database=content.split('ncbi_taxdb')[1].split('=')[1].strip()
+        args.database=ncbi_config['ncbi_taxdb']
+        if not args.database:
+            args.database=None #just to ensure type is consistent
+    elif not args.database is None and not ncbi_config['ncbi_taxdb']:
+        taxdb_path=os.path.abspath(args.database)
+        ncbi_config['ncbi_taxdb']=taxdb_path
+        printerr(f"Setting ncbi_taxdb = {taxdb_path} into the user configuration --> ~/.ncbi_config", 1)        
+        save_ncbi_config()
+        
     if args.database is None or not os.path.exists(args.database):
-        raise NoTracebackError('ERROR: --database file not found: %s\nPerhaps you never built a NCBI tax.db? Try to run this in a folder of your choice to do it:\n\nncbi_taxonomy_tree db\n\nRun with -h for help' % args.database)
+        raise NoTracebackError('ERROR: --database file not found: %s\nPerhaps you never built a NCBI tax.db? For help, run: ncbi_taxonomy_tree --makedb -h' % args.database)
 
+    temp_folder=random_folder(args.temp).rstrip('/')+'/'
+    
     #### INPUT
     # if input file contains taxonomy ids
     if args.taxid:
@@ -250,7 +263,7 @@ def main(args=None):
     # if input file contains names
     elif args.name:
         if not os.path.exists(args.name): raise Exception('file not found: %s\n' % args.name)
-        out_hash,taxids_from_input_dict = get_taxid_from_names(args.name, args.temp, args.unmask, args.database, quiet=args.quiet)
+        out_hash,taxids_from_input_dict = get_taxid_from_names(args.name, temp_folder, args.unmask, args.database, quiet=args.quiet)
         taxid_list = list(out_hash.values())
 
     # if both taxid and name in input
@@ -270,7 +283,7 @@ def main(args=None):
 
     # if an annotation is provided for the names
     elif args.name_annotation:
-        taxid_list, taxids_from_input_dict, taxid_attrs = get_name_and_annotation(args.name_annotation, args.temp)
+        taxid_list, taxids_from_input_dict, taxid_attrs = get_name_and_annotation(args.name_annotation, temp_folder)
 
     # list of taxids is ready for building the tree
     if not taxid_list:
@@ -413,6 +426,8 @@ def main(args=None):
     if args.print_stdout:
         print(t)
 
+    if os.path.isdir(temp_folder):
+        shutil.rmtree(temp_folder)
     return t
 
 # END OF PROGRAM

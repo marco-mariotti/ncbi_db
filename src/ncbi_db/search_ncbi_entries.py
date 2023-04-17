@@ -6,8 +6,6 @@ from .MMlib3 import *
 from Bio import Entrez
 from time import sleep
 
-Entrez.email = "dpto.bioinformatics@crg.es"
-
 help_msg="""Fetches entries from one of the NCBI databases (nucleotide, protein, taxonomy) through a "all names" search. It wraps functions from Bio->Entrez. Useful to get to the gi code or taxonomy id from any other code (or species name).
 
 search_ncbi_entries.py "search query string" [options]

@@ -3,16 +3,17 @@ from .ncbi_lib import *
 from .MMlib3 import options
 help_msg=""" Displays information about ncbi db that can be queried through the Entrez module. Usage:
 
-$  ncbi_db_info.py    db_name
+$  ncbi_db_info    db_name
 
 To get a list of possible db_name, run with no options
 
 ### Options:
--h OR --help    print this help and exit"""
+-email         email address to use with NCBI Entrez. Required for first usage of ncbi online tools
+-h OR --help   print this help and exit"""
 
 command_line_synonyms={}
 
-def_opt= { 
+def_opt= { 'email':'',
 'i':0, }
 
 
@@ -30,7 +31,8 @@ def main(args=None):
     opt=options(def_opt)
     opt.update(args)
 
-
+  email_setup(opt['email'])
+  
   set_MMlib_var('opt', opt)
   #global temp_folder; temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)
   #global split_folder;    split_folder=Folder(opt['temp']);               test_writeable_folder(split_folder); set_MMlib_var('split_folder', split_folder) 

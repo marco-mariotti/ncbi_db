@@ -14,22 +14,41 @@ Entrez.email = None
 
 ncbi_config=easyterm.commandlineopt.CommandLineOptions({
   'ncbi_taxdb':'',
-  'email':'',
+  'ncbi_email':'',
   })
 
 def load_ncbi_config():
   #nonlocal ncbi_config
-  ncbi_config_file=Path( Path.home()+'/.ncbi_db' )
+  ncbi_config_file=Path( str(Path.home())+'/.ncbi_config' )
   if ncbi_config_file.is_file():
     ncbi_config.update(
       easyterm.read_config_file(str(ncbi_config_file))
       )
+  return ncbi_config
 
 def save_ncbi_config():
   #nonlocal ncbi_config
-  ncbi_config_file=Path( Path.home()+'/.ncbi_db' )
+  ncbi_config_file=Path( str(Path.home())+'/.ncbi_config' )
   ncbi_config.write_config_file(str(ncbi_config_file))
 
+
+def email_setup(email):
+  ncbi_config=load_ncbi_config()
+  if not email and not ncbi_config['ncbi_email']:
+    raise Exception('ERROR on your first usage, you must provide an email address to use NCBI services with -email')
+
+  if email and email!=ncbi_config['ncbi_email']:
+    printerr(f"Setting email = {email} into the user configuration --> ~/.ncbi_config", 1)
+    ncbi_config['ncbi_email']=email
+    try:
+      save_ncbi_config()
+    except:
+      printerr('WARNING: could not save configuration to ~/.ncbi_config', 1)
+
+  Entrez.email=email
+
+
+    
 #### NOTE some values must be defined in MMlib.opt:
 # sleep_time
 # retmax

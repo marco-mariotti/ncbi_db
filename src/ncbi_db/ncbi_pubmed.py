@@ -2,7 +2,7 @@
 from .ncbi_lib import *
 help_msg="""Utility to search pubmed entries online and get formatted reference-style entries 
 Usage:
-$ ncbi_pubmed.py   [search]   [output]
+$ ncbi_pubmed [search] [output]
 
 ###  Search options:
 -P   pubmed id(s), comma-separated  |  -p   pubmed ids file
@@ -26,8 +26,9 @@ $ ncbi_pubmed.py   [search]   [output]
      where citationInText is like "Mariotti et al., 2015" or "Chapple and Guigo, 2008" and id is the pubmed id or the citationKey if -kp
 
 ### other options:
--print_opt      print currently active options
--h OR --help    print this help and exit"""
+-email        email address to use with NCBI Entrez. Required for first usage of ncbi online tools
+-print_opt    print currently active options
+-h OR --help  print this help and exit"""
 
 command_line_synonyms={}
 
@@ -41,6 +42,7 @@ def_opt= {
 'o':0,
 'ct':0, 'sa':0,
 'v':0,
+'email':'',
 }
 
 #########################################################
@@ -64,6 +66,8 @@ def main(args={}):
   available_ref_style={'pnas':1, 'info':1, 'elife':1}
   ref_style=opt['s']
   if not ref_style in available_ref_style: raise Exception('ERROR invalid argument to option -s !  See -h')
+
+  email_setup(opt['email'])
 
   style2max_authors={'pnas':5, 'elife':30, 'info':0} #not used for info
   max_authors= opt['ma'] if opt['ma'] else style2max_authors[ref_style]

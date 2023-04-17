@@ -4,9 +4,7 @@ from .ncbi_lib import *
 
 help_msg="""Interrogates NCBI online through Bio.Entrez, retrieves info (and files) related to the genomic assemblies for an organism or lineage. 
 
-## Usage:   $ ncbi_assembly.py   -S species_or_lineage   [options]
-
-Normally the 'genome' db is queried, and the corresponding 'assembly' entries are fetched. 
+## Usage:   $ ncbi_assembly  -S species_or_lineage   [options]
 
 ############## Options ############## 
 ### Which entries
@@ -23,7 +21,7 @@ Normally the 'genome' db is queried, and the corresponding 'assembly' entries ar
  -aa      provide assembly accessions (style: GCA_001940725.1); optionally multiple, comma-separated. Overrides -S and -tax
 
 ### Information displayed
--a              shows detailed information for each assembly entry. As arguments:     
+-a              shows detailed information for each assembly entry. As arguments:
      0           -> shows nothing (quiet mode)
      1 [default] -> shows a few built-in selected fields
      2           -> shows all the non-null fields in this object
@@ -36,7 +34,7 @@ Normally the 'genome' db is queried, and the corresponding 'assembly' entries ar
    ftp:XXX    derived path of a specific file.  Here's the possible XXX file classes:
  | dna   genome file   (*_genomic.fna)  | gff   annotation file    (*_genomic.gff)
  | pep   proteome file (*_protein.faa)  | fea   feature table file (*_feature_table.txt)
- | gbf   genbank format annoation file  | md5  md5checksum file                 
+ | gbf   genbank format annoation file  | md5  md5checksum file
 
 ### Check or download files
 -c  [x1,x2..]   test if files are found locally or at NCBI ftp. Possible x values: see XXX file classes above (Default: all)
@@ -56,6 +54,7 @@ Normally the 'genome' db is queried, and the corresponding 'assembly' entries ar
 -k              skip and keep running if error occurs for a certain assembly / species, instead of crashing
 
 ### Other options
+-email        email address to use with NCBI Entrez. Required for first usage of ncbi online tools
 -tab          tab separated output. The main messages then go to stderr, to allow redirection of the tables to an output file
 -markup       comma separated terminal markup colors to show results in output. Default: 'yellow,,magenta,red'
 -v            verbose output, for debugging
@@ -65,17 +64,18 @@ Normally the 'genome' db is queried, and the corresponding 'assembly' entries ar
 command_line_synonyms={}
 
 def_opt= { 'temp':'/tmp/', 
-'S':'',   'tax':False, 'aa':0,
-'z':0, 'e':0, 'n':0,
-'tab':0, 
-'c':0, 's':0, 'd':0, 
-'f':'', 'F':0, 'dl':0, 
-'G':0,   
-'g':1, 'a':1,
-'k':0, 'max_down':4,
-'retmax':250, 'max_attempts':10, 'sleep_time':5, 
-'v':0,
-'markup':'yellow,,magenta,red',
+           'S':'',   'tax':False, 'aa':0,
+           'z':0, 'e':0, 'n':0,
+           'tab':0, 
+           'c':0, 's':0, 'd':0, 
+           'f':'', 'F':0, 'dl':0, 
+           'G':0,   
+           'g':1, 'a':1,
+           'k':0, 'max_down':4,
+           'retmax':250, 'max_attempts':10, 'sleep_time':5, 
+           'v':0,
+           'markup':'yellow,,magenta,red',
+           'email': '',
 }
 
 ftp_file_description={'dna':'genome.fa',  'pep':'proteome.fa', 
@@ -108,8 +108,14 @@ def main(args={}):
 #########################################################
 ############ loading options
   global opt
-  if not args: opt=command_line(def_opt, help_msg, 'S', synonyms=command_line_synonyms )
-  else:  opt=args
+  if not args:
+    opt=command_line(def_opt, help_msg, 'S', synonyms=command_line_synonyms )
+  else:
+    opt=args
+    for k in def_opt:
+      if k not in opt: opt[k]=def_opt[k]
+
+
   set_MMlib_var('opt', opt)
   global temp_folder; temp_folder=Folder(random_folder(opt['temp'])); test_writeable_folder(temp_folder, 'temp_folder'); set_MMlib_var('temp_folder', temp_folder)
   #global split_folder;    split_folder=Folder(opt['temp']);               test_writeable_folder(split_folder); set_MMlib_var('split_folder', split_folder) 
@@ -139,8 +145,23 @@ See --help""")
   if opt['c'] and opt['c']!=1 and any(  [not c in ftp_file_types for c in opt['c'].split(',') ] ): raise Exception("ERROR illegal argument for option -c ! See -help")
   markup=opt['markup'].split(',')
   
-  #########
+  ######### config: email
+  email_setup(opt['email'])
+  
+  # ncbi_config=load_ncbi_config()
+  # if not opt['email'] and not ncbi_config['ncbi_email']:
+  #   raise Exception('ERROR on your first usage, you must provide an email address to use NCBI services with -email')
 
+  # if opt['email'] and opt['email']!=ncbi_config['ncbi_email']:
+  #   printerr(f"Setting email = {opt['email']} into the user configuration --> ~/.ncbi_config", 1)
+  #   ncbi_config['ncbi_email']=opt['email']    
+  #   try:
+  #     save_ncbi_config()
+  #   except:
+  #     printerr('WARNING: could not save configuration to ~/.ncbi_config', 1)
+
+
+  
   ####### program start
   ## NOTE message is used to display any non-data message, e.g. how many results, how many filtered etc
   message(' Searching for "{0}" in ncbi database "{1}" '.format(species, {False:'assembly',True:'genome'}[bool(opt['G'])]))
@@ -466,7 +487,7 @@ See --help""")
       ftp_handler=get_ftp_handler(force=True)
 
   ###############
-
+  return assembly_entries
 
 ## temp, to improve
 def ftp_file_to_local_path(ftp_path, species_name, local_master_folder):
