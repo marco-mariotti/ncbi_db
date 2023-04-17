@@ -207,9 +207,9 @@ def main(args={}):
   if output_format=='html':  textout+='</body>'
 
   if output_format=='txt':
-    print(textout.encode('utf8', errors='replace'))
+    print(textout.encode('utf8', errors='replace').decode('utf8')  )
   elif output_format=='html':
-    print(textout.encode('ascii', 'xmlcharrefreplace'))
+    print(textout.encode('ascii', 'xmlcharrefreplace').decode('ascii'))
 
   ###############
 

@@ -4,6 +4,7 @@ import sys
 from subprocess import *
 from .MMlib3 import *
 from .ncbi_taxonomy import main as run_ncbi_taxonomy
+from .ncbi_lib import email_setup
 from Bio import Entrez, SeqIO
 import time
 

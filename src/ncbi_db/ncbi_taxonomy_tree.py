@@ -3,7 +3,6 @@ import sys,os
 import json
 import sqlite3
 import argparse
-from ete3 import Tree
 from collections import defaultdict
 from .MMlib3 import bbash, unmask_characters, mask_characters, get_taxids_from_ncbi_db, printerr, random_folder
 import shutil, os
@@ -11,6 +10,10 @@ from easyterm import NoTracebackError
 from .ncbi_taxonomy_tree_db import main as run_ncbi_taxonomy_tree_db
 from .ncbi_lib import load_ncbi_config, save_ncbi_config
 from pathlib import Path
+
+import warnings
+warnings.filterwarnings("ignore", category=SyntaxWarning)
+from ete3 import Tree
 
 def get_parser():
     """returns the argparse parser object with the argument option requirements"""
