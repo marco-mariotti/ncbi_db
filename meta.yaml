@@ -26,7 +26,7 @@ requirements:
     - python >=3.6
   run:
     - python >=3.6
-    - biopython  >=1.46
+    - biopython
     - ete3
     - lxml
     - six
@@ -36,10 +36,10 @@ about:
   home: "https://github.com/marco-mariotti/{{ name }}"
   license: MIT
   license_family: MIT
-  license_file: 
+  license_file:
   summary: "Utilities to query and download NCBI data"
-  doc_url: 
-  dev_url: 
+  doc_url:
+  dev_url:
 
 extra:
   recipe-maintainers:
